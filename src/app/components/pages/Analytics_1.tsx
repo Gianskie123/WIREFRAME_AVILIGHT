@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, Legend as RLegend,
 } from "recharts";
-import { Search, ChevronDown, Plus, Minus, Play, MapPin } from "lucide-react";
+import { Search, ChevronDown, Plus, Minus, Sliders, Play } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type LandType =
@@ -41,6 +41,11 @@ const LEGEND_TYPES: LandType[] = [
 ];
 const MONTHS = ["January","February","March","April","May","June",
   "July","August","September","October","November","December"];
+
+const LAND_TYPE_OPTIONS: LandType[] = [
+  "Urban & Built-up","Water Bodies","Forest","Croplands",
+  "Grasslands","Wetlands","Savannas","Woody Savannas","Cropland Mosaics","Barren",
+];
 
 // ── Map coordinate system ─────────────────────────────────────────────────────
 const MAP_W = 560, MAP_H = 700;
@@ -316,13 +321,13 @@ export function Analytics() {
   const [viewMode,   setViewMode]   = useState<ViewMode>("landcover");
   const [tolerance,  setTolerance]  = useState<Tolerance>("All");
   const [migration,  setMigration]  = useState<Migration>("All");
-  const [month,      setMonth]      = useState(0);
+  const [month,      setMonth]      = useState(0);   // used in richness input params too
 
   // Map hover/interaction
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
   const [mousePos,    setMousePos]    = useState({ x: 0, y: 0 });
 
-  // Local explainer (land cover mode)
+  // Local explainer
   const [searchText,    setSearchText]    = useState("");
   const [foundCity,     setFoundCity]     = useState<CityInfo | null>(null);
   const [searched,      setSearched]      = useState(false);
@@ -351,45 +356,30 @@ export function Analytics() {
   }
   const allCoversSelected = selectedCovers.size === ALL_LC.length;
 
-  // ── Richness prediction state ─────────────────────────────────────────────
-  // City dropdown — auto-fills land type
-  const [predCityId,   setPredCityId]   = useState<string>(CITIES[0].id);
-  const predCity = CITIES.find(c => c.id === predCityId) ?? CITIES[0];
-
-  // Editable covariates (seeded from city defaults, user can tweak)
-  const [predLandTemp, setPredLandTemp] = useState(30);
-  const [predALAN,     setPredALAN]     = useState(45);
-  const [predPrecip,   setPredPrecip]   = useState(150);
-  const [predNDVI,     setPredNDVI]     = useState(35);
-
-  // When city changes, reset covariates to representative defaults
-  useEffect(() => {
-    const city = CITIES.find(c => c.id === predCityId);
-    if (!city) return;
-    // Derive plausible defaults from city's shap/land cover
-    const alanBase = city.shap.find(s => s.feature === "Light Intensity")?.value ?? 0.4;
-    const ndviBase = city.shap.find(s => s.feature === "NDVI")?.value ?? 0.25;
-    setPredALAN(Math.round(10 + alanBase * 80));
-    setPredNDVI(Math.round(10 + ndviBase * 220));
-    setPredLandTemp(city.dominantLandCover === "Forest" ? 26 : city.dominantLandCover === "Water Bodies" ? 28 : 31);
-    setPredPrecip(city.dominantLandCover === "Wetlands" ? 280 : 150);
-  }, [predCityId]);
-
-  const [prediction,   setPrediction]   = useState<PredictionResult | null>(null);
-  const [predRunning,  setPredRunning]  = useState(false);
+  // ── Prediction / hyperparameter state ────────────────────────────────────
+  const [predLandType,      setPredLandType]      = useState<LandType>("Urban & Built-up");
+  const [predLandTemp,      setPredLandTemp]       = useState(30);
+  const [predALAN,          setPredALAN]           = useState(45);
+  const [predPrecip,        setPredPrecip]         = useState(150);
+  const [predNDVI,          setPredNDVI]           = useState(35);
+  const [hyperNTrees,       setHyperNTrees]        = useState(100);
+  const [hyperMaxDepth,     setHyperMaxDepth]      = useState(5);
+  const [hyperLearningRate, setHyperLearningRate]  = useState(0.1);
+  const [prediction,        setPrediction]         = useState<PredictionResult | null>(null);
+  const [predRunning,       setPredRunning]        = useState(false);
 
   function handleRunPrediction() {
     setPredRunning(true);
     setTimeout(() => {
       const result = runPrediction({
-        landType: predCity.dominantLandCover,
+        landType: predLandType,
         landTemp: predLandTemp,
         alan: predALAN,
         precipitation: predPrecip,
         ndvi: predNDVI,
-        nTrees: 100,
-        maxDepth: 5,
-        learningRate: 0.1,
+        nTrees: hyperNTrees,
+        maxDepth: hyperMaxDepth,
+        learningRate: hyperLearningRate,
         month,
       });
       setPrediction(result);
@@ -442,19 +432,23 @@ export function Analytics() {
     );
   }
 
-  function NumInput({ label, value, onChange, min, max, step }: {
+  // Numeric input helper
+  function NumInput({ label, value, onChange, min, max, step, unit }: {
     label: string; value: number; onChange: (v: number) => void;
-    min: number; max: number; step: number;
+    min: number; max: number; step: number; unit?: string;
   }) {
     return (
       <div>
         <label className={`block text-xs mb-1 ${textSecondary}`} style={{ fontWeight: 600 }}>{label}</label>
-        <input
-          type="number" min={min} max={max} step={step} value={value}
-          onChange={e => onChange(Number(e.target.value))}
-          className={`w-full rounded px-2 py-1.5 text-sm outline-none ${inputField} transition-colors`}
-          style={{ fontWeight: 600 }}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="number" min={min} max={max} step={step} value={value}
+            onChange={e => onChange(Number(e.target.value))}
+            className={`w-full rounded px-2 py-1.5 text-sm outline-none ${inputField} transition-colors`}
+            style={{ fontWeight: 600 }}
+          />
+          {unit && <span className={`text-xs shrink-0 ${textSecondary}`}>{unit}</span>}
+        </div>
       </div>
     );
   }
@@ -653,8 +647,8 @@ export function Analytics() {
       </div>
 
       {/* ── Bottom section ─────────────────────────────────────────────────────
-          LAND COVER MODE : SHAP chart (left) + City Search (right)
-          RICHNESS MODE   : Covariate inputs (left) + Prediction + SHAP (right, full width)
+          LAND COVER MODE: SHAP chart (left) + City Search (right)
+          RICHNESS MODE  : Covariate + Hyperparameter inputs (left) + Prediction output + City Search (right)
       ────────────────────────────────────────────────────────────────────────── */}
 
       {viewMode === "landcover" ? (
@@ -700,68 +694,78 @@ export function Analytics() {
             richnessByCity={richnessByCity}
             expandSpecies={expandSpecies} setExpandSpecies={setExpandSpecies}
             handleSearch={handleSearch}
+            showShap={false}  // land cover mode: NO shap in city panel
           />
         </div>
       ) : (
         /* ═══════════════════ RICHNESS MODE ═══════════════════ */
         <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#1e2535] ${gridBg}`}>
 
-          {/* ── LEFT: Covariate Inputs ── */}
-          <div className="p-6 flex flex-col gap-5 overflow-y-auto" style={{ maxHeight: "72vh" }}>
-            <div>
-              <h2 className={`${textPrimary} mb-1`} style={{ fontWeight: 700, fontSize: "15px" }}>Prediction Covariates</h2>
-              <p className={`text-xs ${textSecondary}`}>Select a city — land type is auto-assigned. Adjust environmental variables as needed.</p>
-            </div>
+          {/* Left: Input Parameters + Hyperparameters */}
+          <div className="p-6 flex flex-col gap-6 overflow-y-auto" style={{ maxHeight: "70vh" }}>
 
-            {/* City dropdown */}
+            {/* Covariates section */}
             <div>
-              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>
-                <MapPin size={11} className="inline mr-1 text-purple-400" />City / Municipality
-              </label>
-              <select
-                value={predCityId}
-                onChange={e => setPredCityId(e.target.value)}
-                className={`w-full rounded px-2 py-2 text-sm outline-none ${inputField} transition-colors`}
-                style={{ fontWeight: 600 }}
-              >
-                {CITIES.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+              <div className="flex items-center gap-2 mb-4">
+                <Sliders size={14} className="text-purple-400" />
+                <h2 className={`${textPrimary}`} style={{ fontWeight: 700, fontSize: "15px" }}>Prediction Covariates</h2>
+              </div>
 
-            {/* Land type — read-only, derived from city */}
-            <div>
-              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>Land Type <span className="font-normal opacity-60">(auto-assigned)</span></label>
-              <div className={`flex items-center gap-2 w-full rounded px-3 py-2 text-sm ${lightMode ? "bg-gray-100 border border-gray-200 text-gray-700" : "bg-[#0d1117] border border-[#2a2f42] text-gray-300"}`}>
-                <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: LAND_COLORS[predCity.dominantLandCover] }} />
-                <span style={{ fontWeight: 600 }}>{predCity.dominantLandCover}</span>
-                <span className={`ml-auto text-xs ${textSecondary}`}>{predCity.landCoverPct}% cover</span>
+              <div className="grid grid-cols-1 gap-4">
+                {/* Land Type dropdown */}
+                <div>
+                  <label className={`block text-xs mb-1 ${textSecondary}`} style={{ fontWeight: 600 }}>Land Type</label>
+                  <select
+                    value={predLandType}
+                    onChange={e => setPredLandType(e.target.value as LandType)}
+                    className={`w-full rounded px-2 py-1.5 text-sm outline-none ${inputField} transition-colors`}
+                    style={{ fontWeight: 600 }}
+                  >
+                    {LAND_TYPE_OPTIONS.map(lt => (
+                      <option key={lt} value={lt}>{lt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <NumInput label="Land Temp (°C)" value={predLandTemp} onChange={setPredLandTemp} min={10} max={45} step={0.5} />
+                  <NumInput label="ALAN (nW/cm²/sr)" value={predALAN} onChange={setPredALAN} min={0} max={120} step={1} />
+                  <NumInput label="Precipitation (mm)" value={predPrecip} onChange={setPredPrecip} min={0} max={600} step={5} />
+                  <NumInput label="NDVI (%)" value={predNDVI} onChange={setPredNDVI} min={0} max={100} step={1} />
+                </div>
+
+                {/* Month */}
+                <div>
+                  <label className={`block text-xs mb-1 ${textSecondary}`} style={{ fontWeight: 600 }}>Month</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min={0} max={11} value={month}
+                      onChange={e => setMonth(Number(e.target.value))}
+                      className="flex-1 cursor-pointer accent-purple-500"
+                      style={{ height: "4px" }}
+                    />
+                    <span className={`text-xs shrink-0 px-2 py-1 rounded ${lightMode ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-300"}`} style={{ fontWeight: 700, minWidth: "72px", textAlign: "center" }}>
+                      {MONTHS[month]}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Editable covariates */}
-            <div className="grid grid-cols-2 gap-3">
-              <NumInput label="Land Temp (°C)" value={predLandTemp} onChange={setPredLandTemp} min={10} max={45} step={0.5} />
-              <NumInput label="ALAN (nW/cm²/sr)" value={predALAN} onChange={setPredALAN} min={0} max={120} step={1} />
-              <NumInput label="Precipitation (mm)" value={predPrecip} onChange={setPredPrecip} min={0} max={600} step={5} />
-              <NumInput label="NDVI (%)" value={predNDVI} onChange={setPredNDVI} min={0} max={100} step={1} />
-            </div>
-
-            {/* Month slider */}
+            {/* Hyperparameters */}
             <div>
-              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>Month</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range" min={0} max={11} value={month}
-                  onChange={e => setMonth(Number(e.target.value))}
-                  className="flex-1 cursor-pointer accent-purple-500"
-                  style={{ height: "4px" }}
-                />
-                <span className={`text-xs shrink-0 px-2 py-1 rounded ${lightMode ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-300"}`}
-                  style={{ fontWeight: 700, minWidth: "76px", textAlign: "center" }}>
-                  {MONTHS[month]}
-                </span>
+              <div className={`border-t ${sectionBorder} pt-5`}>
+                <h3 className={`${textPrimary} mb-4`} style={{ fontWeight: 700, fontSize: "13px" }}>
+                  Model Hyperparameters
+                  <span className={`ml-2 text-xs ${textSecondary}`} style={{ fontWeight: 400 }}>(Random Forest / XGBoost)</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <NumInput label="N Trees" value={hyperNTrees} onChange={setHyperNTrees} min={10} max={500} step={10} />
+                  <NumInput label="Max Depth" value={hyperMaxDepth} onChange={setHyperMaxDepth} min={1} max={20} step={1} />
+                  <div className="col-span-2">
+                    <NumInput label="Learning Rate" value={hyperLearningRate} onChange={setHyperLearningRate} min={0.001} max={1} step={0.01} />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -769,8 +773,10 @@ export function Analytics() {
             <button
               onClick={handleRunPrediction}
               disabled={predRunning}
-              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm text-white transition-all mt-auto ${
-                predRunning ? "bg-purple-700/60 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 active:scale-[0.98]"
+              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm text-white transition-all ${
+                predRunning
+                  ? "bg-purple-700/60 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700 active:scale-[0.98]"
               }`}
               style={{ fontWeight: 700 }}
             >
@@ -779,129 +785,77 @@ export function Analytics() {
             </button>
           </div>
 
-          {/* ── RIGHT: Prediction output + SHAP ── */}
-          <div className="p-6 overflow-y-auto" style={{ maxHeight: "72vh" }}>
-            <h2 className={`${textPrimary} mb-4`} style={{ fontWeight: 700, fontSize: "15px" }}>
-              Predicted Species Richness
-              {prediction && (
-                <span className={`ml-2 text-xs ${textSecondary}`} style={{ fontWeight: 400 }}>
-                  — {predCity.name} · {MONTHS[month]}
-                </span>
-              )}
-            </h2>
+          {/* Right: Prediction output + City Search */}
+          <div className="flex flex-col divide-y divide-[#1e2535] overflow-y-auto" style={{ maxHeight: "70vh" }}>
 
-            {!prediction ? (
-              <div className={`rounded-lg p-8 border ${lightMode ? "bg-gray-50 border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} text-center`}>
-                <div className="text-4xl mb-3">🔮</div>
-                <p className={`text-sm ${textSecondary}`}>Select a city and covariates,</p>
-                <p className={`text-sm ${textSecondary}`}>then click <span className="text-purple-400" style={{ fontWeight: 600 }}>Run Prediction</span>.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Total badge */}
-                <div className={`rounded-lg p-4 border ${lightMode ? "bg-purple-50 border-purple-200" : "bg-purple-900/20 border-purple-700/40"}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`text-xs ${textSecondary} mb-0.5`} style={{ fontWeight: 600 }}>TOTAL PREDICTED SPECIES</p>
-                      <p className={`text-xs ${textSecondary}`}>{predCity.dominantLandCover} · ALAN {predALAN} nW · {MONTHS[month]}</p>
+            {/* Prediction results */}
+            <div className="p-6">
+              <h2 className={`${textPrimary} mb-4`} style={{ fontWeight: 700, fontSize: "15px" }}>
+                Predicted Species Richness
+              </h2>
+
+              {!prediction ? (
+                <div className={`rounded-lg p-6 border ${lightMode ? "bg-gray-50 border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} text-center`}>
+                  <p className={`text-sm ${textSecondary}`}>Configure covariates and hyperparameters,</p>
+                  <p className={`text-sm ${textSecondary}`}>then click <span className="text-purple-400" style={{ fontWeight: 600 }}>Run Prediction</span> to see results.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Total */}
+                  <div className={`rounded-lg p-4 border ${lightMode ? "bg-purple-50 border-purple-200" : "bg-purple-900/20 border-purple-700/40"}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm ${textPrimary}`} style={{ fontWeight: 700 }}>Total Predicted Species</span>
+                      <span className="text-2xl text-purple-400" style={{ fontWeight: 800 }}>{prediction.total}</span>
                     </div>
-                    <span className="text-4xl text-purple-400" style={{ fontWeight: 800 }}>{prediction.total}</span>
+                    <p className={`text-xs mt-1 ${textSecondary}`}>
+                      Based on {MONTHS[month]} · {predLandType} · ALAN {predALAN} nW/cm²/sr
+                    </p>
                   </div>
-                </div>
 
-                {/* Category breakdown */}
-                <div className={`rounded-lg border overflow-hidden ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
-                  {[
-                    { label: "Light Sensitive", val: prediction.lightSensitive, color: "#f87171", bg: "bg-red-500",     desc: "Suppressed by high ALAN" },
-                    { label: "Light Tolerant",  val: prediction.lightTolerant,  color: "#60a5fa", bg: "bg-blue-500",    desc: "Adapted to lit environments" },
-                    { label: "Resident",        val: prediction.resident,       color: "#34d399", bg: "bg-emerald-500", desc: "Year-round breeding species" },
-                    { label: "Migratory",       val: prediction.migratory,      color: "#fbbf24", bg: "bg-amber-500",   desc: "Seasonal visitors" },
-                  ].map((row, i) => (
-                    <div key={i} className={`px-4 py-3 ${i < 3 ? `border-b ${sectionBorder}` : ""}`}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div>
-                          <span className={`text-xs ${textPrimary}`} style={{ fontWeight: 700 }}>{row.label}</span>
-                          <span className={`ml-2 text-xs ${textSecondary}`}>{row.desc}</span>
-                        </div>
-                        <span style={{ fontSize: "17px", fontWeight: 800, color: row.color, lineHeight: 1 }}>{row.val}</span>
-                      </div>
-                      <div className={`h-2 rounded-full ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
-                        <div className={`h-2 rounded-full ${row.bg}`}
-                          style={{ width: `${Math.round((row.val / prediction.total) * 100)}%`, transition: "width 0.55s ease" }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ── SHAP Feature Importance visualization ── */}
-                <div className={`rounded-lg border ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} p-4`}>
-                  <p className={`text-xs mb-3 ${textPrimary}`} style={{ fontWeight: 700 }}>
-                    Feature Importance (SHAP)
-                    <span className={`ml-1.5 font-normal ${textSecondary}`}>— {predCity.name}</span>
-                  </p>
-
-                  {/* Horizontal SHAP bars with positive/negative visual */}
-                  <div className="space-y-2.5">
-                    {predCity.shap.map((item, i) => {
-                      const BAR_COLORS = ["#f87171","#60a5fa","#fbbf24","#a78bfa","#34d399"];
-                      const maxVal = Math.max(...predCity.shap.map(s => s.value));
-                      const pct = Math.round((item.value / maxVal) * 100);
-                      const color = BAR_COLORS[i % BAR_COLORS.length];
-
-                      // Map feature name to the input value for context annotation
-                      const inputAnnotations: Record<string, string> = {
-                        "Light Intensity": `${predALAN} nW`,
-                        "NDVI":            `${predNDVI}%`,
-                        "Temperature":     `${predLandTemp}°C`,
-                        "Elevation":       "—",
-                        "Distance to Water": "—",
-                      };
-                      const annotation = inputAnnotations[item.feature] ?? "";
-
-                      return (
-                        <div key={i}>
+                  {/* Categories */}
+                  <div className={`rounded-lg border ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} divide-y divide-[#1e2535] overflow-hidden`}>
+                    {[
+                      { label: "Light Sensitive", val: prediction.lightSensitive, color: "#f87171", bg: "bg-red-500", desc: "Species avoided by high ALAN" },
+                      { label: "Light Tolerant",  val: prediction.lightTolerant,  color: "#60a5fa", bg: "bg-blue-500", desc: "Species adapted to lit environments" },
+                      { label: "Resident",         val: prediction.resident,       color: "#34d399", bg: "bg-emerald-500", desc: "Year-round breeding species" },
+                      { label: "Migratory",        val: prediction.migratory,      color: "#fbbf24", bg: "bg-amber-500",   desc: "Seasonal visitors" },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-center gap-3 px-4 py-3">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: color }} />
-                              <span className={`text-xs ${textPrimary}`} style={{ fontWeight: 600 }}>{item.feature}</span>
-                              {annotation && (
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${lightMode ? "bg-gray-100 text-gray-500" : "bg-[#1e2535] text-gray-500"}`}>
-                                  {annotation}
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontSize: "11px", fontWeight: 700, color }}>{item.value.toFixed(2)}</span>
+                            <span className={`text-xs ${textPrimary}`} style={{ fontWeight: 700 }}>{row.label}</span>
+                            <span style={{ fontSize: "16px", fontWeight: 800, color: row.color }}>{row.val}</span>
                           </div>
-                          {/* Bar track */}
-                          <div className={`h-3 rounded-full overflow-hidden ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
+                          <p className={`text-xs ${textSecondary}`}>{row.desc}</p>
+                          <div className={`mt-1.5 h-1.5 rounded-full ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
                             <div
-                              className="h-3 rounded-full flex items-center justify-end pr-1.5 transition-all duration-500"
-                              style={{ width: `${pct}%`, background: color, opacity: 0.85 }}
-                            >
-                              {pct > 25 && (
-                                <span style={{ fontSize: "8px", color: "white", fontWeight: 700 }}>{(item.value * 100).toFixed(0)}%</span>
-                              )}
-                            </div>
+                              className={`h-1.5 rounded-full ${row.bg}`}
+                              style={{ width: `${Math.round((row.val / prediction.total) * 100)}%`, transition: "width 0.5s ease" }}
+                            />
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
-                  <p className={`text-xs mt-3 ${textSecondary} leading-relaxed`}>
-                    <span style={{ fontWeight: 600 }}>Key driver: </span>
-                    {predCity.shap[0].feature} ({predCity.shap[0].value.toFixed(2)}) has the strongest influence on predicted richness for {predCity.name}.
-                    {predCity.dominantLandCover === "Urban & Built-up"
-                      ? " High ALAN suppresses light-sensitive species while vegetation corridors remain critical refugia."
-                      : " Vegetation cover and water proximity together drive high species turnover in this area."}
+                  <p className={`text-xs ${textSecondary} italic`}>
+                    Prototype model — values are illustrative. Connect a trained model endpoint for production predictions.
                   </p>
                 </div>
+              )}
+            </div>
 
-                <p className={`text-xs ${textSecondary} italic`}>
-                  Prototype model — values are illustrative for presentation purposes.
-                </p>
-              </div>
-            )}
+            {/* City search (no SHAP in richness mode) */}
+            <CitySearchPanel
+              lightMode={lightMode} textPrimary={textPrimary} textSecondary={textSecondary}
+              inputBg={inputBg} sectionBorder={sectionBorder}
+              searchText={searchText} setSearchText={setSearchText}
+              foundCity={foundCity} searched={searched}
+              richnessByCity={richnessByCity}
+              expandSpecies={expandSpecies} setExpandSpecies={setExpandSpecies}
+              handleSearch={handleSearch}
+              showShap={false}
+            />
           </div>
         </div>
       )}
@@ -933,11 +887,11 @@ export function Analytics() {
   );
 }
 
-// ── City Search Panel (Land Cover mode only) ─────────────────────────────────
+// ── City Search Panel (shared, SHAP hidden in richness mode) ──────────────────
 function CitySearchPanel({
   lightMode, textPrimary, textSecondary, inputBg, sectionBorder,
   searchText, setSearchText, foundCity, searched, richnessByCity,
-  expandSpecies, setExpandSpecies, handleSearch,
+  expandSpecies, setExpandSpecies, handleSearch, showShap,
 }: {
   lightMode: boolean; textPrimary: string; textSecondary: string;
   inputBg: string; sectionBorder: string;
@@ -946,6 +900,7 @@ function CitySearchPanel({
   richnessByCity: Map<string, number>;
   expandSpecies: boolean; setExpandSpecies: (v: boolean | ((p: boolean) => boolean)) => void;
   handleSearch: () => void;
+  showShap: boolean;
 }) {
   return (
     <div id="local-explainer" className="p-6 overflow-y-auto" style={{ maxHeight: "70vh" }}>
@@ -1028,7 +983,29 @@ function CitySearchPanel({
             )}
           </div>
 
-
+          {/* SHAP — only in land cover mode */}
+          {showShap && (
+            <div>
+              <p className={`${textSecondary} text-xs mb-2`} style={{ fontWeight: 600 }}>Environmental Factors (SHAP)</p>
+              <div className="space-y-2">
+                {foundCity.shap.map((item, i) => {
+                  const barColors = ["#22c55e","#3b82f6","#f59e0b","#8b5cf6","#06b6d4"];
+                  const maxVal = Math.max(...foundCity.shap.map(s => s.value));
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between mb-0.5">
+                        <span className={textSecondary} style={{ fontSize: "11px" }}>{item.feature}</span>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: barColors[i] }}>{item.value.toFixed(2)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-[#1e2535] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width:`${(item.value/maxVal)*100}%`, background: barColors[i] }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
