@@ -46,7 +46,6 @@ export function Landing() {
               <input
                 id="email"
                 type="email"
-                defaultValue="giancarloregalado05@gmail.com"
                 className="w-full rounded-md bg-white border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/80 focus:border-blue-500"
                 placeholder="you@example.com"
               />
@@ -59,7 +58,6 @@ export function Landing() {
               <input
                 id="password"
                 type="password"
-                defaultValue="••••••••"
                 className="w-full rounded-md bg-white border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/80 focus:border-blue-500"
                 placeholder="Enter password"
               />
