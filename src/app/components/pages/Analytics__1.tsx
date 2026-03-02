@@ -29,11 +29,11 @@ interface CityInfo {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LAND_COLORS: Record<LandType, string> = {
-  "Urban & Built-up": "#e53935", "Water Bodies":    "#1565c0",
-  "Forest":           "#1b5e20", "Croplands":       "#f9a825",
-  "Grasslands":       "#7cb342", "Wetlands":        "#00695c",
-  "Savannas":         "#e65100", "Woody Savannas":  "#4a148c",
-  "Cropland Mosaics": "#f06292", "Barren":          "#78909c",
+  "Urban & Built-up": "#e53935", "Water Bodies":    "#42a5f5",
+  "Forest":           "#2e7d32", "Croplands":       "#fdd835",
+  "Grasslands":       "#66bb6a", "Wetlands":        "#00897b",
+  "Savannas":         "#fb8c00", "Woody Savannas":  "#5d4037",
+  "Cropland Mosaics": "#f06a1e", "Barren":          "#8d6e63",
 };
 const LEGEND_TYPES: LandType[] = [
   "Urban & Built-up","Water Bodies","Forest","Croplands",
@@ -41,53 +41,6 @@ const LEGEND_TYPES: LandType[] = [
 ];
 const MONTHS = ["January","February","March","April","May","June",
   "July","August","September","October","November","December"];
-
-// ── Species counts shared with Dashboard (same formula for uniformity) ────────
-interface SpeciesCounts { resident: number; migratory: number; lightTolerant: number; lightSensitive: number }
-
-function makeCounts(r: number, m: number, lt: number, ls: number, yearOffset = 0, monthFactor = 1): SpeciesCounts {
-  return {
-    resident:      Math.round(r  + yearOffset * 0.5),
-    migratory:     Math.round(m  * monthFactor + yearOffset * 0.3),
-    lightTolerant: Math.round(lt + yearOffset * 0.2),
-    lightSensitive:Math.round(ls + yearOffset * 0.4),
-  };
-}
-
-function buildSiteData(base: { r:number; m:number; lt:number; ls:number }): Record<number, Record<number, SpeciesCounts>> {
-  const years = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
-  const migratoryBoost: Record<number,number> = {1:1.8,2:1.9,3:1.6,10:1.4,11:1.7,12:1.9};
-  const data: Record<number, Record<number, SpeciesCounts>> = {};
-  years.forEach((yr, yi) => {
-    data[yr] = {};
-    data[yr][0] = makeCounts(base.r, base.m, base.lt, base.ls, yi);
-    for (let mo = 1; mo <= 12; mo++) {
-      const mf = migratoryBoost[mo] ?? 0.6;
-      data[yr][mo] = makeCounts(base.r, base.m, base.lt, base.ls, yi, mf);
-    }
-  });
-  return data;
-}
-
-// City-level species data mirroring Dashboard OBS_SITES for NCR cities
-const CITY_SPECIES_DATA: Record<string, Record<number, Record<number, SpeciesCounts>>> = {
-  "quezon-city": buildSiteData({ r:42, m:28, lt:18, ls:24 }), // La Mesa Watershed
-  "marikina":    buildSiteData({ r:38, m:22, lt:15, ls:18 }), // Marikina Watershed
-  "muntinlupa":  buildSiteData({ r:56, m:44, lt:22, ls:35 }), // Laguna de Bay
-  "manila":      buildSiteData({ r:24, m:12, lt:16, ls: 8 }), // NAPWC
-  "las-pinas":   buildSiteData({ r:48, m:36, lt:14, ls:28 }), // Las Piñas-Parañaque
-  "paranaque":   buildSiteData({ r:31, m:14, lt:20, ls:11 }), // UP Diliman (adjacent site)
-};
-
-function getCitySpeciesFromData(cityId: string, year: number, month: number): SpeciesCounts | null {
-  const siteData = CITY_SPECIES_DATA[cityId];
-  if (!siteData) return null;
-  return siteData[year]?.[month] ?? siteData[2024][0];
-}
-
-function totalFromCounts(c: SpeciesCounts): number {
-  return c.resident + c.migratory + c.lightTolerant + c.lightSensitive;
-}
 
 // ── Map coordinate system ─────────────────────────────────────────────────────
 const MAP_W = 560, MAP_H = 700;
@@ -172,7 +125,7 @@ const CITIES: CityInfo[] = [
     id:"quezon-city", name:"Quezon City",
     polygon: [[14.76,120.97],[14.76,121.09],[14.72,121.14],[14.67,121.17],[14.63,121.16],[14.62,121.12],[14.62,121.08],[14.61,121.05],[14.61,121.01],[14.65,120.97]],
     labelAt: [14.685,121.06],
-    dominantLandCover:"Forest", landCoverPct:35,
+    dominantLandCover:"Urban & Built-up", landCoverPct:65,
     richness:{"All-All":47,"Sensitive-All":38,"Tolerant-All":41,"All-Resident":44,"All-Migratory":25},
     totalSpecies:47, observationSites:15,
     species:["Philippine Bulbul","Colasisi","White-browed Shama","Scale-feathered Malkoha","Stripe-headed Rhabdornis","Philippine Falconet","Black-and-cinnamon Fantail","Guaiabero","Luzon Hornbill","Philippine Nightjar","Eurasian Tree Sparrow","Yellow-vented Bulbul","Pied Fantail","Olive-backed Sunbird","Brown Shrike","Philippine Myna","Lowland White-eye","Pacific Swallow","White-collared Kingfisher","Collared Kingfisher","Zebra Dove","Rock Pigeon","Common Myna","Blue-tailed Bee-eater","Coppersmith Barbet","Long-tailed Shrike","Blue-backed Parrot","Philippine Drongo","Slender-billed Crow","Pied Triller","Ashy Minivet","White-throated Kingfisher","Grey-backed Tailorbird","White-eared Brown Dove","Golden-bellied Flyeater","Black-naped Oriole","Grass Owl","Philippine Hawk-Owl","Philippine Hawk-Eagle","Golden-bellied Gerygone","Philippine Tailorbird","Sulphur-billed Nuthatch","Bar-bellied Cuckoo","Silvery Kingfisher","Large-billed Crow","Luzon Bleeding-heart","Philippine Brown Dove"],
@@ -202,7 +155,7 @@ const CITIES: CityInfo[] = [
     id:"marikina", name:"Marikina",
     polygon: [[14.71,121.07],[14.71,121.17],[14.62,121.17],[14.62,121.12],[14.62,121.08],[14.65,121.07]],
     labelAt: [14.67,121.12],
-    dominantLandCover:"Grasslands", landCoverPct:30,
+    dominantLandCover:"Urban & Built-up", landCoverPct:70,
     richness:{"All-All":38,"Sensitive-All":30,"Tolerant-All":33,"All-Resident":36,"All-Migratory":18},
     totalSpecies:38, observationSites:10,
     species:["Philippine Bulbul","Stripe-headed Rhabdornis","Black-naped Oriole","Philippine Drongo","Pied Triller","White-browed Shama","Coppersmith Barbet","Philippine Myna","Lowland White-eye","Yellow-vented Bulbul","Pied Fantail","Eurasian Tree Sparrow","Rock Pigeon","Blue-tailed Bee-eater","Collared Kingfisher","Pacific Swallow","Olive-backed Sunbird","Brown Shrike","White-throated Kingfisher","Long-tailed Shrike","Common Myna","Zebra Dove","Glossy Swiftlet","Black-crowned Night Heron","Striated Heron","Little Egret","Blue-backed Parrot","Philippine Falconet","Scale-feathered Malkoha","Silvery Kingfisher","Philippine Nightjar","Ashy Minivet","Grey-backed Tailorbird","Philippine Tailorbird","Golden-bellied Gerygone","Grass Owl","Philippine Hawk-Owl","Philippine Pond Heron"],
@@ -262,7 +215,7 @@ const CITIES: CityInfo[] = [
     id:"taguig", name:"Taguig",
     polygon: [[14.55,121.04],[14.56,121.07],[14.57,121.13],[14.50,121.13],[14.49,121.04]],
     labelAt: [14.525,121.085],
-    dominantLandCover:"Croplands", landCoverPct:30,
+    dominantLandCover:"Urban & Built-up", landCoverPct:70,
     richness:{"All-All":33,"Sensitive-All":24,"Tolerant-All":29,"All-Resident":30,"All-Migratory":22},
     totalSpecies:33, observationSites:9,
     species:["Eurasian Tree Sparrow","Rock Pigeon","Common Myna","Zebra Dove","Yellow-vented Bulbul","Pied Fantail","Pacific Swallow","Collared Kingfisher","Olive-backed Sunbird","Lowland White-eye","Glossy Swiftlet","Philippine Myna","Brown Shrike","Blue-tailed Bee-eater","Coppersmith Barbet","White-collared Kingfisher","Little Egret","Black-crowned Night Heron","Striated Heron","Purple Heron","Common Sandpiper","Black-winged Stilt","White-browed Crake","Common Moorhen","Little Ringed Plover","Little Tern","Whiskered Tern","Philippine Duck","Little Grebe","White-breasted Waterhen","Purple Swamphen","Common Kingfisher","Spotted Dove"],
@@ -272,7 +225,7 @@ const CITIES: CityInfo[] = [
     id:"paranaque", name:"Parañaque",
     polygon: [[14.52,120.98],[14.52,121.07],[14.47,121.07],[14.45,121.03],[14.45,120.99],[14.48,120.98]],
     labelAt: [14.485,121.02],
-    dominantLandCover:"Cropland Mosaics", landCoverPct:28,
+    dominantLandCover:"Urban & Built-up", landCoverPct:72,
     richness:{"All-All":31,"Sensitive-All":22,"Tolerant-All":27,"All-Resident":28,"All-Migratory":21},
     totalSpecies:31, observationSites:8,
     species:["Eurasian Tree Sparrow","Rock Pigeon","Common Myna","Zebra Dove","Yellow-vented Bulbul","Pied Fantail","Pacific Swallow","Collared Kingfisher","Olive-backed Sunbird","Lowland White-eye","Glossy Swiftlet","Philippine Myna","Brown Shrike","Blue-tailed Bee-eater","Common Tern","Little Tern","Whiskered Tern","Pacific Reef Heron","Little Egret","Black-crowned Night Heron","Common Sandpiper","Black-winged Stilt","White-browed Crake","Common Moorhen","Little Ringed Plover","Philippine Duck","White-breasted Waterhen","Little Cormorant","Spotted Dove","Coppersmith Barbet","Long-tailed Shrike"],
@@ -282,7 +235,7 @@ const CITIES: CityInfo[] = [
     id:"las-pinas", name:"Las Piñas",
     polygon: [[14.49,120.96],[14.49,121.03],[14.44,121.03],[14.43,121.00],[14.43,120.96]],
     labelAt: [14.46,120.995],
-    dominantLandCover:"Woody Savannas", landCoverPct:32,
+    dominantLandCover:"Urban & Built-up", landCoverPct:68,
     richness:{"All-All":34,"Sensitive-All":25,"Tolerant-All":30,"All-Resident":31,"All-Migratory":22},
     totalSpecies:34, observationSites:7,
     species:["Eurasian Tree Sparrow","Rock Pigeon","Common Myna","Zebra Dove","Yellow-vented Bulbul","Pied Fantail","Pacific Swallow","Collared Kingfisher","Olive-backed Sunbird","Lowland White-eye","Glossy Swiftlet","Philippine Myna","Brown Shrike","Blue-tailed Bee-eater","Common Tern","Little Tern","Little Egret","Black-crowned Night Heron","Common Sandpiper","Black-winged Stilt","White-browed Crake","Common Moorhen","Philippine Duck","White-breasted Waterhen","Little Cormorant","Spotted Dove","Coppersmith Barbet","Blue-backed Parrot","Pied Triller","Philippine Drongo","White-throated Kingfisher","Pacific Reef Egret","Long-tailed Shrike","Common Greenshank"],
@@ -292,7 +245,7 @@ const CITIES: CityInfo[] = [
     id:"muntinlupa", name:"Muntinlupa",
     polygon: [[14.49,121.02],[14.50,121.13],[14.40,121.13],[14.38,121.05],[14.38,121.02]],
     labelAt: [14.43,121.07],
-    dominantLandCover:"Wetlands", landCoverPct:42,
+    dominantLandCover:"Urban & Built-up", landCoverPct:58,
     richness:{"All-All":42,"Sensitive-All":34,"Tolerant-All":38,"All-Resident":40,"All-Migratory":28},
     totalSpecies:42, observationSites:11,
     species:["Philippine Bulbul","Lowland White-eye","Black-naped Oriole","Philippine Drongo","White-breasted Waterhen","Purple Swamphen","Common Moorhen","Striated Heron","Little Egret","Black-crowned Night Heron","White-browed Crake","Ruddy-breasted Crake","Philippine Duck","Little Grebe","Little Cormorant","Whiskered Tern","Common Sandpiper","Black-winged Stilt","Little Tern","Yellow-vented Bulbul","Pied Fantail","Pacific Swallow","Collared Kingfisher","Common Kingfisher","Olive-backed Sunbird","Glossy Swiftlet","Eurasian Tree Sparrow","Rock Pigeon","Common Myna","Zebra Dove","Philippine Myna","Brown Shrike","Blue-tailed Bee-eater","Coppersmith Barbet","Pied Triller","White-throated Kingfisher","Philippine Nightjar","Philippine Hawk-Owl","Spotted Dove","Long-tailed Shrike","Pacific Reef Heron","Philippine Pond Heron"],
@@ -379,8 +332,6 @@ export function Analytics() {
   const ALL_LC = Object.keys(LAND_COLORS) as LandType[];
   const [selectedCovers, setSelectedCovers] = useState<Set<LandType>>(new Set(ALL_LC));
   const [showLCFilter,   setShowLCFilter]   = useState(false);
-  const [showFilters,    setShowFilters]    = useState(true);
-  const [selectedYear,   setSelectedYear]   = useState(2024);
   const lcRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -401,110 +352,56 @@ export function Analytics() {
   const allCoversSelected = selectedCovers.size === ALL_LC.length;
 
   // ── Richness prediction state ─────────────────────────────────────────────
-  const [predCityId, setPredCityId] = useState<string>(CITIES[0].id);
+  // City dropdown — auto-fills land type
+  const [predCityId,   setPredCityId]   = useState<string>(CITIES[0].id);
   const predCity = CITIES.find(c => c.id === predCityId) ?? CITIES[0];
 
-  // Historical baseline covariates (read-only for BAU — derived per city)
-  const historicalCovariates = useMemo(() => {
-    const city = CITIES.find(c => c.id === predCityId) ?? CITIES[0];
+  // Editable covariates (seeded from city defaults, user can tweak)
+  const [predLandTemp, setPredLandTemp] = useState(30);
+  const [predALAN,     setPredALAN]     = useState(45);
+  const [predPrecip,   setPredPrecip]   = useState(150);
+  const [predNDVI,     setPredNDVI]     = useState(35);
+
+  // When city changes, reset covariates to representative defaults
+  useEffect(() => {
+    const city = CITIES.find(c => c.id === predCityId);
+    if (!city) return;
+    // Derive plausible defaults from city's shap/land cover
     const alanBase = city.shap.find(s => s.feature === "Light Intensity")?.value ?? 0.4;
     const ndviBase = city.shap.find(s => s.feature === "NDVI")?.value ?? 0.25;
-    return {
-      alan:   Math.round(10 + alanBase * 80),
-      ndvi:   Math.round(10 + ndviBase * 220),
-      temp:   city.dominantLandCover === "Forest" ? 26 : city.dominantLandCover === "Water Bodies" ? 28 : 31,
-      precip: city.dominantLandCover === "Wetlands" ? 280 : 150,
-    };
+    setPredALAN(Math.round(10 + alanBase * 80));
+    setPredNDVI(Math.round(10 + ndviBase * 220));
+    setPredLandTemp(city.dominantLandCover === "Forest" ? 26 : city.dominantLandCover === "Water Bodies" ? 28 : 31);
+    setPredPrecip(city.dominantLandCover === "Wetlands" ? 280 : 150);
   }, [predCityId]);
 
-  // Mitigation sliders — offset deltas from historical baseline, centred at 0
-  // alanDelta: negative = reduce light pollution (good); range ±40 nW
-  // ndviDelta: positive = increase vegetation; range ±30 %pts
-  // tempDelta: negative = cooler (urban greening); range ±4 °C
-  const [alanDelta,   setAlanDelta]   = useState(0);   // nW offset
-  const [ndviDelta,   setNdviDelta]   = useState(0);   // %pt offset
-  const [tempDelta,   setTempDelta]   = useState(0);   // °C offset
-  const [precipDelta, setPrecipDelta] = useState(0);   // mm offset
+  const [prediction,   setPrediction]   = useState<PredictionResult | null>(null);
+  const [predRunning,  setPredRunning]  = useState(false);
 
-  // Reset mitigation sliders when city changes
-  useEffect(() => {
-    setAlanDelta(0);
-    setNdviDelta(0);
-    setTempDelta(0);
-    setPrecipDelta(0);
-    setBauPrediction(null);
-    setMitPrediction(null);
-  }, [predCityId]);
-
-  const [bauPrediction, setBauPrediction] = useState<PredictionResult | null>(null);
-  const [mitPrediction, setMitPrediction] = useState<PredictionResult | null>(null);
-  const [bauRunning,    setBauRunning]    = useState(false);
-  const [mitRunning,    setMitRunning]    = useState(false);
-
-  // Derived mitigation inputs
-  const mitInputs = {
-    alan:   Math.max(0, historicalCovariates.alan + alanDelta),
-    ndvi:   Math.min(100, Math.max(0, historicalCovariates.ndvi + ndviDelta)),
-    temp:   historicalCovariates.temp + tempDelta,
-    precip: Math.max(0, historicalCovariates.precip + precipDelta),
-  };
-
-  function handleRunBAU() {
-    setBauRunning(true);
-    setMitPrediction(null);
+  function handleRunPrediction() {
+    setPredRunning(true);
     setTimeout(() => {
       const result = runPrediction({
         landType: predCity.dominantLandCover,
-        landTemp: historicalCovariates.temp,
-        alan: historicalCovariates.alan,
-        precipitation: historicalCovariates.precip,
-        ndvi: historicalCovariates.ndvi,
-        nTrees: 100, maxDepth: 5, learningRate: 0.1, month,
+        landTemp: predLandTemp,
+        alan: predALAN,
+        precipitation: predPrecip,
+        ndvi: predNDVI,
+        nTrees: 100,
+        maxDepth: 5,
+        learningRate: 0.1,
+        month,
       });
-      setBauPrediction(result);
-      setBauRunning(false);
-    }, 700);
+      setPrediction(result);
+      setPredRunning(false);
+    }, 600);
   }
-
-  function handleRunMitigation() {
-    setMitRunning(true);
-    setTimeout(() => {
-      const result = runPrediction({
-        landType: predCity.dominantLandCover,
-        landTemp: mitInputs.temp,
-        alan: mitInputs.alan,
-        precipitation: mitInputs.precip,
-        ndvi: mitInputs.ndvi,
-        nTrees: 100, maxDepth: 5, learningRate: 0.1, month,
-      });
-      setMitPrediction(result);
-      setMitRunning(false);
-    }, 700);
-  }
-
-  // For backwards compat with map colouring
-  const prediction = bauPrediction;
 
   const richnessByCity = useMemo(() => {
     const m = new Map<string, number>();
-    CITIES.forEach(c => {
-      // For cities linked to Dashboard OBS_SITES, use the same formula for uniformity
-      const dashCounts = getCitySpeciesFromData(c.id, selectedYear, month);
-      if (dashCounts) {
-        // Apply tolerance/migration filter on top of the Dashboard-aligned totals
-        let val: number;
-        if (tolerance === "Sensitive") val = dashCounts.lightSensitive;
-        else if (tolerance === "Tolerant") val = dashCounts.lightTolerant;
-        else if (migration === "Resident")  val = dashCounts.resident;
-        else if (migration === "Migratory") val = dashCounts.migratory;
-        else val = totalFromCounts(dashCounts);
-        m.set(c.id, val);
-      } else {
-        m.set(c.id, getCityRichness(c, tolerance, migration, month));
-      }
-    });
+    CITIES.forEach(c => m.set(c.id, getCityRichness(c, tolerance, migration, month)));
     return m;
-  }, [tolerance, migration, month, selectedYear]);
+  }, [tolerance, migration, month]);
 
   const shapData  = foundCity ? foundCity.shap : GLOBAL_SHAP;
   const shapTitle = foundCity
@@ -536,7 +433,7 @@ export function Analytics() {
       <button
         onClick={onClick}
         className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors shrink-0 ${
-          active ? pillActiveBg : `${textSecondary} hover:text-gray-500 border ${lightMode ? "border-gray-300 hover:border-gray-400" : "border-[#2a2f42]"}`
+          active ? pillActiveBg : `${textSecondary} hover:text-gray-200 border border-[#2a2f42]`
         }`}
       >
         {dot && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />}
@@ -545,84 +442,84 @@ export function Analytics() {
     );
   }
 
+  function NumInput({ label, value, onChange, min, max, step }: {
+    label: string; value: number; onChange: (v: number) => void;
+    min: number; max: number; step: number;
+  }) {
+    return (
+      <div>
+        <label className={`block text-xs mb-1 ${textSecondary}`} style={{ fontWeight: 600 }}>{label}</label>
+        <input
+          type="number" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className={`w-full rounded px-2 py-1.5 text-sm outline-none ${inputField} transition-colors`}
+          style={{ fontWeight: 600 }}
+        />
+      </div>
+    );
+  }
+
+  const div = <div className={`w-px h-5 ${dividerColor} mx-0.5 shrink-0`} />;
 
   return (
     <div className={`flex flex-col min-h-full ${pageBg}`}>
 
-      {/* ── Sticky top nav — View toggle + Filter button ─────────────────────── */}
-      <nav className={`sticky top-0 z-20 flex h-11 items-center justify-between px-4 ${navBg} border-b shrink-0`}>
-        {/* Left: View mode */}
-        <div className="flex items-center gap-2">
-          <span className={`${textSecondary} text-xs font-semibold shrink-0`}>View</span>
+      {/* ── Sticky filter navbar ──────────────────────────────────────────────── */}
+      <nav className={`sticky top-0 z-20 flex h-11 ${navBg} border-b shrink-0`}>
+        <div className="flex items-center gap-2 px-4 flex-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          <span className={`${textSecondary} text-xs shrink-0`}>View</span>
           <Pill active={viewMode === "landcover"} label="Land Cover" dot="#42a5f5" onClick={() => setViewMode("landcover")} />
           <Pill active={viewMode === "richness"}  label="Richness"   dot="#8b5cf6" onClick={() => setViewMode("richness")} />
-        </div>
 
-        {/* Right: Filter toggle (only in land cover mode) */}
-        {viewMode === "landcover" && (
-          <button
-            onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-              showFilters
-                ? "bg-blue-600 text-white"
-                : lightMode ? "border border-gray-300 text-gray-600 hover:bg-gray-100" : "border border-[#2a2f42] text-gray-400 hover:bg-white/5"
-            }`}
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M1 2h10v1.5L7 7v4l-2-1V7L1 3.5V2z"/></svg>
-            Filters
-            <ChevronDown size={11} className={`transition-transform ${showFilters ? "rotate-180" : ""}`} />
-          </button>
-        )}
-
-        {viewMode === "richness" && (
-          <span className={`text-xs ${textSecondary} italic`}>Select a city below → Run Prediction to update map</span>
-        )}
-      </nav>
-
-      {/* ── Filter panel (land cover mode only, collapsible) ─────────────────── */}
-      {viewMode === "landcover" && showFilters && (
-        <div className={`${navBg} border-b ${lightMode ? "border-gray-200" : "border-[#1e2535]"} px-4 py-3 flex flex-wrap gap-x-6 gap-y-3 shrink-0`}>
-
-          {/* Tolerance */}
-          <div className="flex items-center gap-1.5">
-            <span className={`${textSecondary} text-xs font-semibold w-[62px] shrink-0`}>Tolerance</span>
-            <div className="flex gap-1">
+          {/* Land Cover mode filters only */}
+          {viewMode === "landcover" && (
+            <>
+              {div}
+              <span className={`${textSecondary} text-xs shrink-0`}>Tolerance</span>
               <Pill active={tolerance === "All"}       label="All"           onClick={() => setTolerance("All")} />
               <Pill active={tolerance === "Sensitive"} label="🔆 Sensitive" dot="#fbbf24" onClick={() => setTolerance("Sensitive")} />
               <Pill active={tolerance === "Tolerant"}  label="🌙 Tolerant"  dot="#f97316" onClick={() => setTolerance("Tolerant")} />
-            </div>
-          </div>
-
-          {/* Vertical divider */}
-          <div className={`w-px self-stretch ${dividerColor}`} />
-
-          {/* Migration */}
-          <div className="flex items-center gap-1.5">
-            <span className={`${textSecondary} text-xs font-semibold w-[58px] shrink-0`}>Migration</span>
-            <div className="flex gap-1">
+              {div}
+              <span className={`${textSecondary} text-xs shrink-0`}>Migration</span>
               <Pill active={migration === "All"}       label="All"            onClick={() => setMigration("All")} />
               <Pill active={migration === "Resident"}  label="🐦 Resident"  dot="#22c55e" onClick={() => setMigration("Resident")} />
               <Pill active={migration === "Migratory"} label="✈️ Migratory" dot="#38bdf8" onClick={() => setMigration("Migratory")} />
-            </div>
-          </div>
+              {div}
+              <span className={`${textSecondary} text-xs shrink-0`}>Month</span>
+              <span className="text-blue-300 text-xs shrink-0 w-[68px]">{MONTHS[month]}</span>
+              <input
+                type="range" min={0} max={11} value={month}
+                onChange={e => setMonth(Number(e.target.value))}
+                className="w-28 shrink-0 cursor-pointer accent-blue-500"
+                style={{ height: "4px" }}
+              />
+            </>
+          )}
 
-          {/* Vertical divider */}
-          <div className={`w-px self-stretch ${dividerColor}`} />
+          {/* Richness mode — just a contextual hint */}
+          {viewMode === "richness" && (
+            <>
+              {div}
+              <span className={`text-xs ${textSecondary} italic`}>
+                Map colors reflect predicted species totals · Select a city below to run prediction
+              </span>
+            </>
+          )}
+        </div>
 
-          {/* Land Cover multi-select */}
-          <div ref={lcRef} className="flex items-center relative">
+        {/* Land Cover filter button — only in land cover mode */}
+        {viewMode === "landcover" && (
+          <div ref={lcRef} className="shrink-0 px-3 flex items-center relative">
             <button
               onClick={() => setShowLCFilter(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                allCoversSelected
-                  ? lightMode ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-emerald-600/20 text-emerald-400 border border-emerald-700/40"
-                  : "bg-orange-500 text-white"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                allCoversSelected ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-orange-600 hover:bg-orange-700 text-white"
               }`}
             >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: allCoversSelected ? "#22c55e" : "#fff" }} />
+              <span className="w-2 h-2 rounded-full bg-white/50 shrink-0" />
               Land Cover
               {!allCoversSelected && (
-                <span className={`rounded-full px-1.5 py-0.5 ${lightMode ? "bg-orange-700 text-white" : "bg-white/25 text-white"}`} style={{ fontSize: "9px" }}>
+                <span className="bg-white/25 rounded-full px-1.5 py-0.5 text-white" style={{ fontSize: "9px" }}>
                   {selectedCovers.size}/{ALL_LC.length}
                 </span>
               )}
@@ -630,72 +527,30 @@ export function Analytics() {
             </button>
 
             {showLCFilter && (
-              <div className={`absolute top-9 left-0 z-[100] ${lightMode ? "bg-white border border-gray-200 shadow-xl" : "bg-[#0f1623] border border-[#2a2f42] shadow-2xl"} rounded-lg w-60 overflow-hidden`}>
-                <div className={`flex items-center justify-between px-3 py-2 border-b ${lightMode ? "border-gray-200" : "border-[#1e2535]"}`}>
-                  <span className={`${textPrimary} text-xs font-bold`}>Filter by Land Cover</span>
-                  <button
-                    onClick={() => setSelectedCovers(allCoversSelected ? new Set() : new Set(ALL_LC))}
-                    className="text-xs text-blue-500 hover:text-blue-400 font-semibold"
-                  >
+              <div className={`absolute top-10 right-0 z-[100] ${dropdownBg} rounded-lg shadow-2xl w-56 overflow-hidden`}>
+                <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e2535]">
+                  <span className={`${textPrimary} text-xs`} style={{ fontWeight: 700 }}>Filter by Land Cover</span>
+                  <button onClick={() => setSelectedCovers(allCoversSelected ? new Set() : new Set(ALL_LC))} className="text-xs text-blue-400 hover:text-blue-300">
                     {allCoversSelected ? "Clear all" : "Select all"}
                   </button>
                 </div>
                 <div className="py-1 max-h-72 overflow-y-auto">
                   {ALL_LC.map(lt => (
-                    <label key={lt} className={`flex items-center gap-2.5 px-3 py-1.5 cursor-pointer ${lightMode ? "hover:bg-gray-50" : "hover:bg-white/5"}`}>
+                    <label key={lt} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-white/5">
                       <input type="checkbox" checked={selectedCovers.has(lt)} onChange={() => toggleCover(lt)} className="accent-blue-500 w-3.5 h-3.5 shrink-0" />
                       <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: LAND_COLORS[lt] }} />
-                      <span className={`text-xs font-medium ${lightMode ? "text-gray-800" : "text-gray-200"}`}>{lt}</span>
+                      <span className={`text-xs ${selectedCovers.has(lt) ? "text-gray-200" : textSecondary}`}>{lt}</span>
                     </label>
                   ))}
                 </div>
-                <div className={`px-3 py-2 border-t ${lightMode ? "border-gray-200 text-gray-500" : "border-[#1e2535] text-gray-500"}`} style={{ fontSize: "10px" }}>
-                  {selectedCovers.size} of {ALL_LC.length} types · {CITIES.filter(c => selectedCovers.has(c.dominantLandCover)).length} cities visible
+                <div className="px-3 py-2 border-t border-[#1e2535]" style={{ fontSize: "10px" }}>
+                  {selectedCovers.size} of {ALL_LC.length} types shown · {CITIES.filter(c => selectedCovers.has(c.dominantLandCover)).length} cities visible
                 </div>
               </div>
             )}
           </div>
-
-          {/* Vertical divider */}
-          <div className={`w-px self-stretch ${dividerColor}`} />
-
-          {/* Year dropdown */}
-          <div className="flex items-center gap-2">
-            <span className={`${textSecondary} text-xs font-semibold shrink-0`}>Year</span>
-            <select
-              value={selectedYear}
-              onChange={e => setSelectedYear(Number(e.target.value))}
-              className={`text-xs rounded-md px-2 py-1 cursor-pointer outline-none focus:ring-1 focus:ring-blue-500 font-semibold ${
-                lightMode
-                  ? "bg-white border border-gray-300 text-gray-800"
-                  : "bg-[#1e2538] border border-[#2a2f42] text-white"
-              }`}
-            >
-              {[2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Vertical divider */}
-          <div className={`w-px self-stretch ${dividerColor}`} />
-
-          {/* Month slider */}
-          <div className="flex items-center gap-2">
-            <span className={`${textSecondary} text-xs font-semibold shrink-0`}>Month</span>
-            <input
-              type="range" min={0} max={11} value={month}
-              onChange={e => setMonth(Number(e.target.value))}
-              className="w-28 cursor-pointer accent-blue-500"
-              style={{ height: "4px" }}
-            />
-            <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full font-semibold min-w-[76px] text-center ${lightMode ? "bg-blue-100 text-blue-700" : "bg-blue-500/20 text-blue-300"}`}>
-              {MONTHS[month]}
-            </span>
-          </div>
-
-        </div>
-      )}
+        )}
+      </nav>
 
       {/* ── Map ──────────────────────────────────────────────────────────────── */}
       <div
@@ -891,455 +746,209 @@ export function Analytics() {
             richnessByCity={richnessByCity}
             expandSpecies={expandSpecies} setExpandSpecies={setExpandSpecies}
             handleSearch={handleSearch}
-            selectedYear={selectedYear} month={month}
           />
         </div>
       ) : (
-        /* ═══════════════════ RICHNESS MODE — Dual Scenario ═══════════════════ */
-        <div className={`${gridBg}`}>
+        /* ═══════════════════ RICHNESS MODE ═══════════════════ */
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#1e2535] ${gridBg}`}>
 
-          {/* ── TOP ROW: City selector + BAU panel ── */}
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x ${lightMode ? "divide-gray-200" : "divide-[#1e2535]"}`}>
+          {/* ── LEFT: Covariate Inputs ── */}
+          <div className="p-6 flex flex-col gap-5 overflow-y-auto" style={{ maxHeight: "72vh" }}>
+            <div>
+              <h2 className={`${textPrimary} mb-1`} style={{ fontWeight: 700, fontSize: "15px" }}>Prediction Covariates</h2>
+              <p className={`text-xs ${textSecondary}`}>Select a city — land type is auto-assigned. Adjust environmental variables as needed.</p>
+            </div>
 
-            {/* LEFT: City + Historical baseline (read-only) */}
-            <div className="p-6 flex flex-col gap-4">
-              <div>
-                <h2 className={`${textPrimary} mb-0.5`} style={{ fontWeight: 700, fontSize: "15px" }}>
-                  Business as Usual (BAU)
-                </h2>
-                <p className={`text-xs ${textSecondary}`}>
-                  Inputs are locked to <span className="font-semibold">historical trend averages</span> derived from nighttime radiance and environmental records. No manual adjustment.
-                </p>
-              </div>
+            {/* City dropdown */}
+            <div>
+              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>
+                <MapPin size={11} className="inline mr-1 text-purple-400" />City / Municipality
+              </label>
+              <select
+                value={predCityId}
+                onChange={e => setPredCityId(e.target.value)}
+                className={`w-full rounded px-2 py-2 text-sm outline-none ${inputField} transition-colors`}
+                style={{ fontWeight: 600 }}
+              >
+                {CITIES.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
 
-              {/* City picker */}
-              <div>
-                <label className={`block text-xs mb-1.5 ${textSecondary} font-semibold`}>
-                  <MapPin size={11} className="inline mr-1 text-purple-400" />City / Municipality
-                </label>
-                <select
-                  value={predCityId}
-                  onChange={e => setPredCityId(e.target.value)}
-                  className={`w-full rounded px-2 py-2 text-sm outline-none ${inputField} transition-colors font-semibold`}
-                >
-                  {CITIES.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Land type badge */}
+            {/* Land type — read-only, derived from city */}
+            <div>
+              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>Land Type <span className="font-normal opacity-60">(auto-assigned)</span></label>
               <div className={`flex items-center gap-2 w-full rounded px-3 py-2 text-sm ${lightMode ? "bg-gray-100 border border-gray-200 text-gray-700" : "bg-[#0d1117] border border-[#2a2f42] text-gray-300"}`}>
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: LAND_COLORS[predCity.dominantLandCover] }} />
-                <span className="font-semibold">{predCity.dominantLandCover}</span>
+                <span style={{ fontWeight: 600 }}>{predCity.dominantLandCover}</span>
                 <span className={`ml-auto text-xs ${textSecondary}`}>{predCity.landCoverPct}% cover</span>
               </div>
+            </div>
 
-              {/* Historical covariate read-only cards */}
-              <div>
-                <p className={`text-xs font-semibold ${textSecondary} mb-2`}>📊 Historical Average Inputs (locked)</p>
-                <div className="grid grid-cols-2 gap-2">
+            {/* Editable covariates */}
+            <div className="grid grid-cols-2 gap-3">
+              <NumInput label="Land Temp (°C)" value={predLandTemp} onChange={setPredLandTemp} min={10} max={45} step={0.5} />
+              <NumInput label="ALAN (nW/cm²/sr)" value={predALAN} onChange={setPredALAN} min={0} max={120} step={1} />
+              <NumInput label="Precipitation (mm)" value={predPrecip} onChange={setPredPrecip} min={0} max={600} step={5} />
+              <NumInput label="NDVI (%)" value={predNDVI} onChange={setPredNDVI} min={0} max={100} step={1} />
+            </div>
+
+            {/* Month slider */}
+            <div>
+              <label className={`block text-xs mb-1.5 ${textSecondary}`} style={{ fontWeight: 600 }}>Month</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range" min={0} max={11} value={month}
+                  onChange={e => setMonth(Number(e.target.value))}
+                  className="flex-1 cursor-pointer accent-purple-500"
+                  style={{ height: "4px" }}
+                />
+                <span className={`text-xs shrink-0 px-2 py-1 rounded ${lightMode ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-300"}`}
+                  style={{ fontWeight: 700, minWidth: "76px", textAlign: "center" }}>
+                  {MONTHS[month]}
+                </span>
+              </div>
+            </div>
+
+            {/* Run button */}
+            <button
+              onClick={handleRunPrediction}
+              disabled={predRunning}
+              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm text-white transition-all mt-auto ${
+                predRunning ? "bg-purple-700/60 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 active:scale-[0.98]"
+              }`}
+              style={{ fontWeight: 700 }}
+            >
+              <Play size={13} />
+              {predRunning ? "Running Model…" : "Run Prediction"}
+            </button>
+          </div>
+
+          {/* ── RIGHT: Prediction output + SHAP ── */}
+          <div className="p-6 overflow-y-auto" style={{ maxHeight: "72vh" }}>
+            <h2 className={`${textPrimary} mb-4`} style={{ fontWeight: 700, fontSize: "15px" }}>
+              Predicted Species Richness
+              {prediction && (
+                <span className={`ml-2 text-xs ${textSecondary}`} style={{ fontWeight: 400 }}>
+                  — {predCity.name} · {MONTHS[month]}
+                </span>
+              )}
+            </h2>
+
+            {!prediction ? (
+              <div className={`rounded-lg p-8 border ${lightMode ? "bg-gray-50 border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} text-center`}>
+                <div className="text-4xl mb-3">🔮</div>
+                <p className={`text-sm ${textSecondary}`}>Select a city and covariates,</p>
+                <p className={`text-sm ${textSecondary}`}>then click <span className="text-purple-400" style={{ fontWeight: 600 }}>Run Prediction</span>.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Total badge */}
+                <div className={`rounded-lg p-4 border ${lightMode ? "bg-purple-50 border-purple-200" : "bg-purple-900/20 border-purple-700/40"}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-xs ${textSecondary} mb-0.5`} style={{ fontWeight: 600 }}>TOTAL PREDICTED SPECIES</p>
+                      <p className={`text-xs ${textSecondary}`}>{predCity.dominantLandCover} · ALAN {predALAN} nW · {MONTHS[month]}</p>
+                    </div>
+                    <span className="text-4xl text-purple-400" style={{ fontWeight: 800 }}>{prediction.total}</span>
+                  </div>
+                </div>
+
+                {/* Category breakdown */}
+                <div className={`rounded-lg border overflow-hidden ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
                   {[
-                    { label: "Nighttime Radiance (ALAN)", value: `${historicalCovariates.alan} nW/cm²/sr`, icon: "🌃", color: lightMode ? "bg-amber-50 border-amber-200" : "bg-amber-900/10 border-amber-700/30" },
-                    { label: "NDVI (Vegetation Cover)",   value: `${historicalCovariates.ndvi}%`,           icon: "🌿", color: lightMode ? "bg-green-50 border-green-200" : "bg-green-900/10 border-green-700/30" },
-                    { label: "Land Surface Temp",         value: `${historicalCovariates.temp}°C`,          icon: "🌡️", color: lightMode ? "bg-red-50 border-red-200" : "bg-red-900/10 border-red-700/30" },
-                    { label: "Mean Precipitation",        value: `${historicalCovariates.precip} mm`,       icon: "🌧️", color: lightMode ? "bg-blue-50 border-blue-200" : "bg-blue-900/10 border-blue-700/30" },
-                  ].map((card, i) => (
-                    <div key={i} className={`rounded-lg border p-2.5 ${card.color}`}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span style={{ fontSize: "13px" }}>{card.icon}</span>
-                        <span className={`text-xs font-semibold ${lightMode ? "text-gray-500" : "text-gray-400"}`} style={{ fontSize: "10px", lineHeight: 1.3 }}>{card.label}</span>
+                    { label: "Light Sensitive", val: prediction.lightSensitive, color: "#f87171", bg: "bg-red-500",     desc: "Suppressed by high ALAN" },
+                    { label: "Light Tolerant",  val: prediction.lightTolerant,  color: "#60a5fa", bg: "bg-blue-500",    desc: "Adapted to lit environments" },
+                    { label: "Resident",        val: prediction.resident,       color: "#34d399", bg: "bg-emerald-500", desc: "Year-round breeding species" },
+                    { label: "Migratory",       val: prediction.migratory,      color: "#fbbf24", bg: "bg-amber-500",   desc: "Seasonal visitors" },
+                  ].map((row, i) => (
+                    <div key={i} className={`px-4 py-3 ${i < 3 ? `border-b ${sectionBorder}` : ""}`}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div>
+                          <span className={`text-xs ${textPrimary}`} style={{ fontWeight: 700 }}>{row.label}</span>
+                          <span className={`ml-2 text-xs ${textSecondary}`}>{row.desc}</span>
+                        </div>
+                        <span style={{ fontSize: "17px", fontWeight: 800, color: row.color, lineHeight: 1 }}>{row.val}</span>
                       </div>
-                      <p className={`${textPrimary} font-bold`} style={{ fontSize: "15px" }}>{card.value}</p>
-                      <p className={`text-xs ${textSecondary} mt-0.5`} style={{ fontSize: "9px" }}>2019–2024 avg.</p>
+                      <div className={`h-2 rounded-full ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
+                        <div className={`h-2 rounded-full ${row.bg}`}
+                          style={{ width: `${Math.round((row.val / prediction.total) * 100)}%`, transition: "width 0.55s ease" }} />
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Month selector */}
-              <div>
-                <label className={`block text-xs font-semibold ${textSecondary} mb-1.5`}>📅 Month</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range" min={0} max={11} step={1} value={month}
-                    onChange={e => { setMonth(Number(e.target.value)); setBauPrediction(null); setMitPrediction(null); }}
-                    className="flex-1 cursor-pointer accent-purple-500" style={{ height: "4px" }}
-                  />
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${lightMode ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-300"}`}>
-                    {MONTHS[month]}
-                  </span>
-                </div>
-                <p className={`text-xs ${textSecondary} mt-1`} style={{ fontSize: "9px" }}>Mitigation scenario will use the same month.</p>
-              </div>
-
-              {/* BAU run button */}
-              <button
-                onClick={handleRunBAU}
-                disabled={bauRunning}
-                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm text-white transition-all font-bold ${
-                  bauRunning ? "bg-slate-600/60 cursor-not-allowed" : "bg-slate-700 hover:bg-slate-600 active:scale-[0.98]"
-                }`}
-              >
-                <Play size={13} />
-                {bauRunning ? "Running BAU…" : "Run BAU Prediction"}
-              </button>
-            </div>
-
-            {/* RIGHT: BAU result */}
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: "72vh" }}>
-              <h2 className={`${textPrimary} mb-1`} style={{ fontWeight: 700, fontSize: "15px" }}>
-                BAU Prediction Result
-                {bauPrediction && <span className={`ml-2 text-xs font-normal ${textSecondary}`}>— {predCity.name} · {MONTHS[month]}</span>}
-              </h2>
-              <p className={`text-xs ${textSecondary} mb-4`}>Projected species richness if current environmental trends continue unchanged.</p>
-
-              {!bauPrediction ? (
-                <div className={`rounded-lg p-10 border text-center ${lightMode ? "bg-gray-50 border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
-                  <div className="text-4xl mb-3">📉</div>
-                  <p className={`text-sm font-semibold ${textSecondary}`}>Select a city and run the BAU prediction</p>
-                  <p className={`text-xs ${textSecondary} mt-1`}>Historical inputs will be used automatically.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* BAU total badge */}
-                  <div className={`rounded-lg p-4 border ${lightMode ? "bg-slate-100 border-slate-300" : "bg-slate-800/40 border-slate-600/40"}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className={`text-xs font-bold ${textSecondary} mb-0.5 uppercase tracking-wide`}>BAU Total Predicted</p>
-                        <p className={`text-xs ${textSecondary}`}>{predCity.dominantLandCover} · ALAN {historicalCovariates.alan} nW · {MONTHS[month]}</p>
-                      </div>
-                      <span className={`text-4xl font-extrabold ${lightMode ? "text-slate-700" : "text-slate-300"}`}>{bauPrediction.total}</span>
-                    </div>
-                  </div>
-
-                  {/* BAU breakdown bars */}
-                  <div className={`rounded-lg border overflow-hidden ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
-                    {[
-                      { label: "Light Sensitive", val: bauPrediction.lightSensitive, color: "#f87171", bg: "bg-red-400"     },
-                      { label: "Light Tolerant",  val: bauPrediction.lightTolerant,  color: "#60a5fa", bg: "bg-blue-400"    },
-                      { label: "Resident",        val: bauPrediction.resident,       color: "#34d399", bg: "bg-emerald-400" },
-                      { label: "Migratory",       val: bauPrediction.migratory,      color: "#fbbf24", bg: "bg-amber-400"   },
-                    ].map((row, i, arr) => (
-                      <div key={i} className={`px-4 py-2.5 ${i < arr.length - 1 ? `border-b ${sectionBorder}` : ""}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-xs font-bold ${textPrimary}`}>{row.label}</span>
-                          <span style={{ fontSize: "16px", fontWeight: 800, color: row.color }}>{row.val}</span>
-                        </div>
-                        <div className={`h-2 rounded-full ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
-                          <div className={`h-2 rounded-full ${row.bg} transition-all duration-500`}
-                            style={{ width: `${Math.round((row.val / bauPrediction.total) * 100)}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className={`text-xs ${textSecondary} italic`}>
-                    ✅ BAU baseline locked. Now configure the <span className="font-semibold text-emerald-500">Mitigation Scenario</span> below.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── MITIGATION SECTION (unlocked after BAU runs) ── */}
-          <div className={`border-t ${lightMode ? "border-gray-200" : "border-[#1e2535]"}`}>
-            {!bauPrediction ? (
-              <div className={`p-6 text-center ${lightMode ? "bg-gray-50" : "bg-[#0a0d13]"}`}>
-                <p className={`text-sm font-semibold ${textSecondary}`}>🔒 Run the BAU prediction first to unlock the Mitigation Scenario</p>
-              </div>
-            ) : (
-              <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x ${lightMode ? "divide-gray-200" : "divide-[#1e2535]"}`}>
-
-                {/* LEFT: Mitigation sliders */}
-                <div className="p-6 flex flex-col gap-5">
-                  <div>
-                    <h2 className={`${textPrimary} mb-0.5`} style={{ fontWeight: 700, fontSize: "15px" }}>
-                      🌱 Mitigation Scenario
-                    </h2>
-                    <p className={`text-xs ${textSecondary}`}>
-                      Adjust each slider relative to the historical baseline. Centre = no change.
-                      Move left to worsen, right to improve conditions.
-                    </p>
-                  </div>
-
-                  {/* ALAN slider */}
-                  {(() => {
-                    const base = historicalCovariates.alan;
-                    const range = 40;
-                    const effective = Math.max(0, base + alanDelta);
-                    const pctChange = Math.round((alanDelta / base) * 100);
-                    return (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <span className={`text-xs font-bold ${textPrimary}`}>🌃 Nighttime Radiance (ALAN)</span>
-                            <span className={`ml-2 text-xs ${textSecondary}`}>Baseline: {base} nW</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                              alanDelta < 0
-                                ? lightMode ? "bg-green-100 text-green-700" : "bg-green-900/30 text-green-400"
-                                : alanDelta > 0
-                                  ? lightMode ? "bg-red-100 text-red-700" : "bg-red-900/30 text-red-400"
-                                  : lightMode ? "bg-gray-100 text-gray-600" : "bg-gray-700/40 text-gray-400"
-                            }`}>
-                              {effective} nW {alanDelta !== 0 && `(${pctChange > 0 ? "+" : ""}${pctChange}%)`}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="relative">
-                          <input type="range" min={-range} max={range} step={2} value={alanDelta}
-                            onChange={e => { setAlanDelta(Number(e.target.value)); setMitPrediction(null); }}
-                            className="w-full cursor-pointer accent-amber-500" style={{ height: "4px" }} />
-                          <div className="flex justify-between text-xs mt-1" style={{ fontSize: "9px" }}>
-                            <span className="text-green-500 font-semibold">← Reduce pollution</span>
-                            <span className={`${textSecondary}`}>Historical avg</span>
-                            <span className="text-red-400 font-semibold">More pollution →</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* NDVI slider */}
-                  {(() => {
-                    const base = historicalCovariates.ndvi;
-                    const range = 30;
-                    const effective = Math.min(100, Math.max(0, base + ndviDelta));
-                    const pctChange = ndviDelta;
-                    return (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <span className={`text-xs font-bold ${textPrimary}`}>🌿 NDVI (Vegetation Cover)</span>
-                            <span className={`ml-2 text-xs ${textSecondary}`}>Baseline: {base}%</span>
-                          </div>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            ndviDelta > 0
-                              ? lightMode ? "bg-green-100 text-green-700" : "bg-green-900/30 text-green-400"
-                              : ndviDelta < 0
-                                ? lightMode ? "bg-red-100 text-red-700" : "bg-red-900/30 text-red-400"
-                                : lightMode ? "bg-gray-100 text-gray-600" : "bg-gray-700/40 text-gray-400"
-                          }`}>
-                            {effective}% {ndviDelta !== 0 && `(${pctChange > 0 ? "+" : ""}${pctChange}pp)`}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input type="range" min={-range} max={range} step={1} value={ndviDelta}
-                            onChange={e => { setNdviDelta(Number(e.target.value)); setMitPrediction(null); }}
-                            className="w-full cursor-pointer accent-green-500" style={{ height: "4px" }} />
-                          <div className="flex justify-between mt-1" style={{ fontSize: "9px" }}>
-                            <span className="text-red-400 font-semibold">← Less vegetation</span>
-                            <span className={`${textSecondary}`}>Historical avg</span>
-                            <span className="text-green-500 font-semibold">More vegetation →</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Temp slider */}
-                  {(() => {
-                    const base = historicalCovariates.temp;
-                    const range = 4;
-                    const effective = (base + tempDelta).toFixed(1);
-                    return (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <span className={`text-xs font-bold ${textPrimary}`}>🌡️ Land Surface Temperature</span>
-                            <span className={`ml-2 text-xs ${textSecondary}`}>Baseline: {base}°C</span>
-                          </div>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            tempDelta < 0
-                              ? lightMode ? "bg-green-100 text-green-700" : "bg-green-900/30 text-green-400"
-                              : tempDelta > 0
-                                ? lightMode ? "bg-red-100 text-red-700" : "bg-red-900/30 text-red-400"
-                                : lightMode ? "bg-gray-100 text-gray-600" : "bg-gray-700/40 text-gray-400"
-                          }`}>
-                            {effective}°C {tempDelta !== 0 && `(${tempDelta > 0 ? "+" : ""}${tempDelta}°C)`}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input type="range" min={-range} max={range} step={0.5} value={tempDelta}
-                            onChange={e => { setTempDelta(Number(e.target.value)); setMitPrediction(null); }}
-                            className="w-full cursor-pointer accent-red-400" style={{ height: "4px" }} />
-                          <div className="flex justify-between mt-1" style={{ fontSize: "9px" }}>
-                            <span className="text-green-500 font-semibold">← Cooler (urban greening)</span>
-                            <span className={`${textSecondary}`}>Historical avg</span>
-                            <span className="text-red-400 font-semibold">Warmer →</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Precipitation slider */}
-                  {(() => {
-                    const base = historicalCovariates.precip;
-                    const range = 100;
-                    const effective = Math.max(0, base + precipDelta);
-                    const pctChange = Math.round((precipDelta / base) * 100);
-                    return (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <span className={`text-xs font-bold ${textPrimary}`}>🌧️ Precipitation</span>
-                            <span className={`ml-2 text-xs ${textSecondary}`}>Baseline: {base} mm</span>
-                          </div>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            precipDelta > 0
-                              ? lightMode ? "bg-blue-100 text-blue-700" : "bg-blue-900/30 text-blue-400"
-                              : precipDelta < 0
-                                ? lightMode ? "bg-red-100 text-red-700" : "bg-red-900/30 text-red-400"
-                                : lightMode ? "bg-gray-100 text-gray-600" : "bg-gray-700/40 text-gray-400"
-                          }`}>
-                            {effective} mm {precipDelta !== 0 && `(${pctChange > 0 ? "+" : ""}${pctChange}%)`}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input type="range" min={-range} max={range} step={5} value={precipDelta}
-                            onChange={e => { setPrecipDelta(Number(e.target.value)); setMitPrediction(null); }}
-                            className="w-full cursor-pointer accent-blue-400" style={{ height: "4px" }} />
-                          <div className="flex justify-between mt-1" style={{ fontSize: "9px" }}>
-                            <span className="text-red-400 font-semibold">← Drier conditions</span>
-                            <span className={`${textSecondary}`}>Historical avg</span>
-                            <span className="text-blue-500 font-semibold">More rainfall →</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Mitigation run button */}
-                  <button
-                    onClick={handleRunMitigation}
-                    disabled={mitRunning}
-                    className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm text-white transition-all font-bold mt-auto ${
-                      mitRunning ? "bg-emerald-700/60 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]"
-                    }`}
-                  >
-                    <Play size={13} />
-                    {mitRunning ? "Running Mitigation…" : "Run Mitigation Prediction"}
-                  </button>
-                </div>
-
-                {/* RIGHT: Comparison output */}
-                <div className="p-6 overflow-y-auto" style={{ maxHeight: "72vh" }}>
-                  <h2 className={`${textPrimary} mb-1`} style={{ fontWeight: 700, fontSize: "15px" }}>
-                    Scenario Comparison
-                  </h2>
-                  <p className={`text-xs ${textSecondary} mb-4`}>
-                    Side-by-side delta between BAU and Mitigation outcomes.
+                {/* ── SHAP Feature Importance visualization ── */}
+                <div className={`rounded-lg border ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"} p-4`}>
+                  <p className={`text-xs mb-3 ${textPrimary}`} style={{ fontWeight: 700 }}>
+                    Feature Importance (SHAP)
+                    <span className={`ml-1.5 font-normal ${textSecondary}`}>— {predCity.name}</span>
                   </p>
 
-                  {!mitPrediction ? (
-                    <div className={`rounded-lg p-8 border text-center ${lightMode ? "bg-gray-50 border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
-                      <div className="text-4xl mb-3">⚖️</div>
-                      <p className={`text-sm font-semibold ${textSecondary}`}>Adjust the mitigation sliders</p>
-                      <p className={`text-xs ${textSecondary} mt-1`}>then click <span className="text-emerald-500 font-bold">Run Mitigation Prediction</span> to see the difference.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Total comparison header */}
-                      <div className={`rounded-xl border overflow-hidden ${lightMode ? "border-gray-200" : "border-[#2a2f42]"}`}>
-                        <div className={`grid grid-cols-3 text-center ${lightMode ? "bg-gray-50" : "bg-[#0d1117]"}`}>
-                          {/* BAU */}
-                          <div className={`p-4 border-r ${lightMode ? "border-gray-200" : "border-[#2a2f42]"}`}>
-                            <p className={`text-xs font-bold ${lightMode ? "text-slate-500" : "text-slate-400"} uppercase tracking-wide mb-1`}>BAU</p>
-                            <p className={`text-3xl font-extrabold ${lightMode ? "text-slate-700" : "text-slate-300"}`}>{bauPrediction.total}</p>
-                            <p className={`text-xs ${textSecondary}`}>species</p>
-                          </div>
-                          {/* Delta */}
-                          <div className="p-4 flex flex-col items-center justify-center">
-                            {(() => {
-                              const delta = mitPrediction.total - bauPrediction.total;
-                              const isPositive = delta >= 0;
-                              return (
-                                <>
-                                  <p className={`text-2xl font-extrabold ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
-                                    {isPositive ? "+" : ""}{delta}
-                                  </p>
-                                  <p className={`text-xs font-semibold ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
-                                    {isPositive ? "▲ Gain" : "▼ Loss"}
-                                  </p>
-                                  <p className={`text-xs ${textSecondary} mt-0.5`}>
-                                    {Math.abs(Math.round((delta / bauPrediction.total) * 100))}%
-                                  </p>
-                                </>
-                              );
-                            })()}
-                          </div>
-                          {/* Mitigation */}
-                          <div className={`p-4 border-l ${lightMode ? "border-gray-200 bg-emerald-50" : "border-[#2a2f42] bg-emerald-900/10"}`}>
-                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">Mitigation</p>
-                            <p className="text-3xl font-extrabold text-emerald-500">{mitPrediction.total}</p>
-                            <p className={`text-xs ${textSecondary}`}>species</p>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Horizontal SHAP bars with positive/negative visual */}
+                  <div className="space-y-2.5">
+                    {predCity.shap.map((item, i) => {
+                      const BAR_COLORS = ["#f87171","#60a5fa","#fbbf24","#a78bfa","#34d399"];
+                      const maxVal = Math.max(...predCity.shap.map(s => s.value));
+                      const pct = Math.round((item.value / maxVal) * 100);
+                      const color = BAR_COLORS[i % BAR_COLORS.length];
 
-                      {/* Category comparison rows */}
-                      <div className={`rounded-lg border overflow-hidden ${lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#2a2f42]"}`}>
-                        <div className={`grid grid-cols-4 px-4 py-1.5 text-center ${lightMode ? "bg-gray-50 border-b border-gray-200" : "bg-[#161b27] border-b border-[#1e2535]"}`}>
-                          <span className={`text-xs font-bold ${textSecondary} text-left`}>Category</span>
-                          <span className={`text-xs font-bold ${lightMode ? "text-slate-500" : "text-slate-400"}`}>BAU</span>
-                          <span className="text-xs font-bold text-emerald-500">Mitigation</span>
-                          <span className={`text-xs font-bold ${textSecondary}`}>Change</span>
-                        </div>
-                        {[
-                          { label: "Light Sensitive", bau: bauPrediction.lightSensitive, mit: mitPrediction.lightSensitive, color: "#f87171" },
-                          { label: "Light Tolerant",  bau: bauPrediction.lightTolerant,  mit: mitPrediction.lightTolerant,  color: "#60a5fa" },
-                          { label: "Resident",        bau: bauPrediction.resident,        mit: mitPrediction.resident,        color: "#34d399" },
-                          { label: "Migratory",       bau: bauPrediction.migratory,       mit: mitPrediction.migratory,       color: "#fbbf24" },
-                        ].map((row, i, arr) => {
-                          const delta = row.mit - row.bau;
-                          const isPos = delta >= 0;
-                          return (
-                            <div key={i} className={`grid grid-cols-4 px-4 py-2.5 text-center items-center ${i < arr.length - 1 ? `border-b ${sectionBorder}` : ""}`}>
-                              <div className="flex items-center gap-1.5 text-left">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
-                                <span className={`text-xs font-semibold ${textPrimary}`}>{row.label}</span>
-                              </div>
-                              <span className={`text-sm font-bold ${lightMode ? "text-slate-600" : "text-slate-300"}`}>{row.bau}</span>
-                              <span className="text-sm font-bold text-emerald-500">{row.mit}</span>
-                              <span className={`text-sm font-bold ${isPos ? "text-emerald-500" : "text-red-400"}`}>
-                                {isPos ? "+" : ""}{delta}
-                              </span>
+                      // Map feature name to the input value for context annotation
+                      const inputAnnotations: Record<string, string> = {
+                        "Light Intensity": `${predALAN} nW`,
+                        "NDVI":            `${predNDVI}%`,
+                        "Temperature":     `${predLandTemp}°C`,
+                        "Elevation":       "—",
+                        "Distance to Water": "—",
+                      };
+                      const annotation = inputAnnotations[item.feature] ?? "";
+
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: color }} />
+                              <span className={`text-xs ${textPrimary}`} style={{ fontWeight: 600 }}>{item.feature}</span>
+                              {annotation && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${lightMode ? "bg-gray-100 text-gray-500" : "bg-[#1e2535] text-gray-500"}`}>
+                                  {annotation}
+                                </span>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color }}>{item.value.toFixed(2)}</span>
+                          </div>
+                          {/* Bar track */}
+                          <div className={`h-3 rounded-full overflow-hidden ${lightMode ? "bg-gray-100" : "bg-[#1e2535]"}`}>
+                            <div
+                              className="h-3 rounded-full flex items-center justify-end pr-1.5 transition-all duration-500"
+                              style={{ width: `${pct}%`, background: color, opacity: 0.85 }}
+                            >
+                              {pct > 25 && (
+                                <span style={{ fontSize: "8px", color: "white", fontWeight: 700 }}>{(item.value * 100).toFixed(0)}%</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                      {/* Narrative summary */}
-                      <div className={`rounded-lg p-3 border ${lightMode ? "bg-emerald-50 border-emerald-200" : "bg-emerald-900/10 border-emerald-700/30"}`}>
-                        {(() => {
-                          const delta = mitPrediction.total - bauPrediction.total;
-                          const lsDelta = mitPrediction.lightSensitive - bauPrediction.lightSensitive;
-                          const isPositive = delta >= 0;
-                          return (
-                            <p className={`text-xs leading-relaxed ${textSecondary}`}>
-                              <span className="font-bold">📋 Summary: </span>
-                              {isPositive
-                                ? `The mitigation scenario projects a gain of ${delta} species (+${Math.round((delta / bauPrediction.total) * 100)}%) over BAU. Light-sensitive species ${lsDelta >= 0 ? `increase by ${lsDelta}` : `decrease by ${Math.abs(lsDelta)}`}, indicating that ${alanDelta < 0 ? "reduced nighttime light pollution is a key driver of recovery." : "vegetation improvements partially offset light pollution effects."}`
-                                : `The mitigation scenario results in ${Math.abs(delta)} fewer species than BAU. Adjusting the sliders toward beneficial values (reduce ALAN, increase NDVI) should improve outcomes.`
-                              }
-                            </p>
-                          );
-                        })()}
-                      </div>
-
-                      <p className={`text-xs ${textSecondary} italic`}>
-                        Prototype model — values are illustrative for presentation purposes.
-                      </p>
-                    </div>
-                  )}
+                  <p className={`text-xs mt-3 ${textSecondary} leading-relaxed`}>
+                    <span style={{ fontWeight: 600 }}>Key driver: </span>
+                    {predCity.shap[0].feature} ({predCity.shap[0].value.toFixed(2)}) has the strongest influence on predicted richness for {predCity.name}.
+                    {predCity.dominantLandCover === "Urban & Built-up"
+                      ? " High ALAN suppresses light-sensitive species while vegetation corridors remain critical refugia."
+                      : " Vegetation cover and water proximity together drive high species turnover in this area."}
+                  </p>
                 </div>
+
+                <p className={`text-xs ${textSecondary} italic`}>
+                  Prototype model — values are illustrative for presentation purposes.
+                </p>
               </div>
             )}
           </div>
-
         </div>
       )}
 
@@ -1436,7 +1045,7 @@ export function Analytics() {
 function CitySearchPanel({
   lightMode, textPrimary, textSecondary, inputBg, sectionBorder,
   searchText, setSearchText, foundCity, searched, richnessByCity,
-  expandSpecies, setExpandSpecies, handleSearch, selectedYear, month,
+  expandSpecies, setExpandSpecies, handleSearch,
 }: {
   lightMode: boolean; textPrimary: string; textSecondary: string;
   inputBg: string; sectionBorder: string;
@@ -1445,7 +1054,6 @@ function CitySearchPanel({
   richnessByCity: Map<string, number>;
   expandSpecies: boolean; setExpandSpecies: (v: boolean | ((p: boolean) => boolean)) => void;
   handleSearch: () => void;
-  selectedYear: number; month: number;
 }) {
   return (
     <div id="local-explainer" className="p-6 overflow-y-auto" style={{ maxHeight: "70vh" }}>
@@ -1477,9 +1085,9 @@ function CitySearchPanel({
 
       {foundCity && (
         <div className="space-y-3">
-          <div className={`rounded px-3 py-2 border text-sm mb-2 ${lightMode ? "bg-teal-50 border-teal-300" : "bg-teal-900/30 border-teal-700/50"}`}>
-            <span className={textSecondary}>Found: </span>
-            <span className={lightMode ? "text-teal-700 font-bold" : "text-teal-300 font-bold"}>{foundCity.name}</span>
+          <div className="rounded px-3 py-2 bg-teal-900/30 border border-teal-700/50 text-sm mb-2">
+            <span className="text-gray-300">Found: </span>
+            <span className="text-teal-300" style={{ fontWeight: 700 }}>{foundCity.name}</span>
           </div>
 
           <div className={`flex justify-between items-center py-1 border-b ${sectionBorder}`}>
@@ -1495,49 +1103,12 @@ function CitySearchPanel({
             </div>
           </div>
 
-          {/* Species count — breakdown if Dashboard-linked, simple total otherwise */}
-          {(() => {
-            const dashCounts = getCitySpeciesFromData(foundCity.id, selectedYear, month);
-            const displayTotal = richnessByCity.get(foundCity.id) ?? foundCity.totalSpecies;
-            if (dashCounts) {
-              const grand = totalFromCounts(dashCounts);
-              const rows = [
-                { label: "Resident",         val: dashCounts.resident,       color: "#34d399" },
-                { label: "Migratory",        val: dashCounts.migratory,      color: "#fbbf24" },
-                { label: "Light Tolerant",   val: dashCounts.lightTolerant,  color: "#60a5fa" },
-                { label: "Light Sensitive",  val: dashCounts.lightSensitive, color: "#f87171" },
-              ];
-              return (
-                <div className={`py-2 border-b ${sectionBorder}`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className={`${textSecondary} text-xs`} style={{ fontWeight: 600 }}>Observed Species</span>
-                    <span className={lightMode ? "text-cyan-600 text-sm font-bold" : "text-cyan-400 text-sm font-bold"}>{grand} spp.</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {rows.map((row, i) => (
-                      <div key={i}>
-                        <div className="flex justify-between items-center mb-0.5">
-                          <span className={`text-xs ${textSecondary}`}>{row.label}</span>
-                          <span className="text-xs font-bold" style={{ color: row.color }}>{row.val}</span>
-                        </div>
-                        <div className={`h-1.5 rounded-full ${lightMode ? "bg-gray-200" : "bg-[#2a2f42]"}`}>
-                          <div className="h-1.5 rounded-full" style={{ width: `${Math.round((row.val / grand) * 100)}%`, background: row.color, transition: "width 0.4s ease" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div className={`flex justify-between items-center py-1 border-b ${sectionBorder}`}>
-                <span className={`${textSecondary} text-xs`} style={{ fontWeight: 600 }}>Total Unique Species</span>
-                <span className={lightMode ? "text-cyan-600 text-sm font-bold" : "text-cyan-400 text-sm font-bold"}>
-                  {displayTotal} species
-                </span>
-              </div>
-            );
-          })()}
+          <div className={`flex justify-between items-center py-1 border-b ${sectionBorder}`}>
+            <span className={`${textSecondary} text-xs`} style={{ fontWeight: 600 }}>Total Unique Species</span>
+            <span className="text-cyan-400 text-sm" style={{ fontWeight: 700 }}>
+              {richnessByCity.get(foundCity.id) ?? foundCity.totalSpecies} species
+            </span>
+          </div>
 
           <div className={`flex justify-between items-center py-1 border-b ${sectionBorder}`}>
             <span className={`${textSecondary} text-xs`} style={{ fontWeight: 600 }}>Observation Sites</span>
@@ -1551,14 +1122,14 @@ function CitySearchPanel({
               {(expandSpecies ? foundCity.species : foundCity.species.slice(0, 8)).map((sp, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
-                  <span className={`${textSecondary} text-xs`}>{sp}</span>
+                  <span className="text-gray-300 text-xs">{sp}</span>
                 </div>
               ))}
             </div>
             {foundCity.species.length > 8 && (
               <button
                 onClick={() => setExpandSpecies(v => !v)}
-                className="mt-1.5 text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+                className="mt-1.5 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
               >
                 {expandSpecies ? "▲ Show less" : `▼ +${foundCity.species.length - 8} more species`}
               </button>

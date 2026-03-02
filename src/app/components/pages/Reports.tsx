@@ -215,9 +215,7 @@ function DownloadBtn({ label, colorClass, hoverClass, dlKey, statuses, onDownloa
 export function Reports() {
   const { lightMode: lm } = useOutletContext<{ lightMode: boolean }>();
 
-  const [tolYear,  setTolYear]  = useState(2014);
-  const [lpYear,   setLpYear]   = useState(2014);
-  const [psYear,   setPsYear]   = useState(2014);
+  const [year,     setYear]     = useState(2024);
   const [dlStates, setDlStates] = useState<Record<string,DLStatus>>({});
 
   const handleDownload = useCallback((key:string) => {
@@ -351,7 +349,7 @@ export function Reports() {
         <TRow label="Count"  value={d.value.toLocaleString()} color={d.payload.fill} />
         <TRow label="Share"  value={`${((d.value/pool)*100).toFixed(1)}%`} />
         <TRow label="Pool"   value={pool.toLocaleString()} />
-        <TRow label="Year"   value={tolYear} />
+        <TRow label="Year"   value={year} />
       </TT>
     );
   };
@@ -360,11 +358,11 @@ export function Reports() {
     if (!active || !payload?.length) return null;
     const d = payload[0]?.payload as { x:number; y:number; site:string };
     if (!d) return null;
-    const rank = [...LP_BY_YEAR[lpYear]].sort((a,b)=>a.x-b.x).findIndex(p=>p.site===d.site)+1;
+    const rank = [...LP_BY_YEAR[year]].sort((a,b)=>a.x-b.x).findIndex(p=>p.site===d.site)+1;
     return (
       <TT>
         <THead text={d.site} />
-        <TRow label="Year"             value={lpYear} />
+        <TRow label="Year"             value={year} />
         <TRow label="Light pollution"  value={`${d.x.toFixed(3)} (norm.)`} color="#f59e0b" />
         <TRow label="Species richness" value={`${d.y.toFixed(3)} (norm.)`} color="#22c55e" />
         <TRow label="Pollution rank"   value={`#${rank} (1 = lowest)`} />
@@ -375,11 +373,11 @@ export function Reports() {
   const PsSiteTT = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload as SiteBase & { richness:number };
-    const rank = getPerSiteData(psYear).findIndex(s => s.site === d.site) + 1;
+    const rank = getPerSiteData(year).findIndex(s => s.site === d.site) + 1;
     return (
       <TT>
         <THead text={d.site} />
-        <TRow label="Year"             value={psYear} />
+        <TRow label="Year"             value={year} />
         <TRow label="Richness (norm.)" value={d.richness.toFixed(3)} color={levelColor(d.lightLevel)} />
         <TRow label="Light exposure"   value={`${d.lightVal} nW/cm²/sr`} color={levelColor(d.lightLevel)} />
         <TRow label="Light level"      value={d.lightLevel} color={levelColor(d.lightLevel)} />
@@ -389,20 +387,27 @@ export function Reports() {
   };
 
   // ── Data derivations ─────────────────────────────────────────────────────
-  const tolData = TOL_BY_YEAR[tolYear];
+  const tolData = TOL_BY_YEAR[year];
   const total   = tolData.tolerant + tolData.sensitive;
   const totMig  = tolData.resident + tolData.migratory;
   const pieTol  = [{ name:"Tolerant",  value:tolData.tolerant,  fill:"#22c55e" }, { name:"Sensitive", value:tolData.sensitive, fill:"#ef4444" }];
   const pieMig  = [{ name:"Resident",  value:tolData.resident,  fill:"#3b82f6" }, { name:"Migratory", value:tolData.migratory, fill:"#f59e0b" }];
-  const psData  = getPerSiteData(psYear);
+  const psData  = getPerSiteData(year);
 
   return (
     <div className={`min-h-full px-6 py-6 space-y-5 ${pageBg}`}>
 
       {/* ── Header ── */}
-      <div>
-        <h1 className={headTxt} style={{ fontWeight:700, fontSize:20 }}>Statistical Reports &amp; Data Visualization</h1>
-        <p className={`text-sm mt-1 ${subTxt}`}>Comprehensive analysis and export capabilities</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className={headTxt} style={{ fontWeight:700, fontSize:20 }}>Statistical Reports &amp; Data Visualization</h1>
+          <p className={`text-sm mt-1 ${subTxt}`}>Comprehensive analysis and export capabilities</p>
+        </div>
+        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border ${lm ? "bg-white border-gray-200 shadow-sm" : "bg-[#161b27] border-[#252d3d]"}`}>
+          <span className={`text-xs font-semibold ${subTxt}`}>Year</span>
+          <YearSelect value={year} onChange={setYear} lm={lm} />
+          <span className={`text-xs ${lm ? "text-blue-600" : "text-blue-400"} font-semibold`}>All visualizations & recommendations</span>
+        </div>
       </div>
 
       {/* ── Export ── */}
@@ -574,21 +579,15 @@ export function Reports() {
 
       {/* ── Tolerance & Migration Pie Charts ── */}
       <div className={panel}>
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>Distribution of Light Tolerance &amp; Migration Status</span>
-            <span className={badgeCSV}>▪ CSV Dataset</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${subTxt}`}>Year:</span>
-            <YearSelect value={tolYear} onChange={setTolYear} lm={lm} />
-          </div>
+        <div className="flex items-center gap-3 flex-wrap mb-5">
+          <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>Distribution of Light Tolerance &amp; Migration Status</span>
+          <span className={badgeCSV}>▪ CSV Dataset</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Light Tolerance */}
           <div className="flex flex-col">
-            <p className={`text-sm mb-1 text-center ${headTxt}`} style={{ fontWeight:600 }}>Light Tolerance — {tolYear}</p>
+            <p className={`text-sm mb-1 text-center ${headTxt}`} style={{ fontWeight:600 }}>Light Tolerance — {year}</p>
             <div style={{ height:280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top:10, right:10, bottom:10, left:10 }}>
@@ -612,7 +611,7 @@ export function Reports() {
 
           {/* Migration Status */}
           <div className="flex flex-col">
-            <p className={`text-sm mb-1 text-center ${headTxt}`} style={{ fontWeight:600 }}>Migration Status — {tolYear}</p>
+            <p className={`text-sm mb-1 text-center ${headTxt}`} style={{ fontWeight:600 }}>Migration Status — {year}</p>
             <div style={{ height:280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top:10, right:10, bottom:10, left:10 }}>
@@ -638,18 +637,12 @@ export function Reports() {
 
       {/* ── LP vs Richness Scatter ── */}
       <div className={panel}>
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>Light Pollution vs Bird Richness</span>
-            <span className={badgeCSV}>▪ CSV Dataset</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${subTxt}`}>Year:</span>
-            <YearSelect value={lpYear} onChange={setLpYear} lm={lm} />
-          </div>
+        <div className="flex items-center gap-3 flex-wrap mb-4">
+          <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>Light Pollution vs Bird Richness</span>
+          <span className={badgeCSV}>▪ CSV Dataset</span>
         </div>
         <div className="flex flex-wrap gap-3 mb-3">
-          {LP_BY_YEAR[lpYear].map((d,i) => (
+          {LP_BY_YEAR[year].map((d,i) => (
             <div key={d.site} className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full shrink-0" style={{ background:SITE_COLORS[i] }} />
               <span className={`text-xs ${subTxt}`}>{d.site}</span>
@@ -665,7 +658,7 @@ export function Reports() {
               <YAxis dataKey="y" type="number" tick={{ fill:axisClr, fontSize:11 }} domain={[0,1]} tickCount={11}
                 label={{ value:"Avg Unique Species Count (normalized)", angle:-90, position:"insideLeft", fill:axisClr, fontSize:11, dx:10 }} />
               <Tooltip content={<LpTT />} />
-              {LP_BY_YEAR[lpYear].map((d,i) => {
+              {LP_BY_YEAR[year].map((d,i) => {
                 const col = SITE_COLORS[i];
                 const Dot = (props:any) => {
                   const { cx, cy } = props;
@@ -685,17 +678,11 @@ export function Reports() {
 
       {/* ── Per Site Bird Richness — Top 20 Sites ── */}
       <div className={panel}>
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>
-              Per Site Bird Richness — Top 20 Sites ({psYear})
-            </span>
-            <span className={badgeCSV}>▪ CSV Dataset</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${subTxt}`}>Year:</span>
-            <YearSelect value={psYear} onChange={setPsYear} lm={lm} />
-          </div>
+        <div className="flex items-center gap-3 flex-wrap mb-4">
+          <span className={`text-sm ${headTxt}`} style={{ fontWeight:700 }}>
+            Per Site Bird Richness — Top 20 Sites ({year})
+          </span>
+          <span className={badgeCSV}>▪ CSV Dataset</span>
         </div>
 
         <div style={{ height: 520 }}>
@@ -741,9 +728,213 @@ export function Reports() {
 
         <p className={`mt-3 text-xs ${subTxt}`}>
           <span className={headTxt} style={{ fontWeight:600 }}>Note: </span>
-          Average unique species count per observation site based on {psYear} field data. Green areas such as La Mesa Eco Park and wetland parks show the highest bird species richness.
+          Average unique species count per observation site based on {year} field data. Green areas such as La Mesa Eco Park and wetland parks show the highest bird species richness.
         </p>
       </div>
+
+      {/* ── Recommendations (Rule-Based Engine) ── */}
+      {(() => {
+        // ── Snapshot inputs ──────────────────────────────────────────────────
+        const currentMonth  = new Date().getMonth(); // 0=Jan … 11=Dec
+        const selectedYear  = year;
+        const tolData       = TOL_BY_YEAR[selectedYear];
+        const prevTolData   = TOL_BY_YEAR[Math.max(2014, selectedYear - 1)];
+        const histEntry     = HIST_DATA.find(h => h.year === String(selectedYear));
+        const prevHistEntry = HIST_DATA.find(h => h.year === String(Math.max(2014, selectedYear - 1)));
+        const psData        = getPerSiteData(selectedYear);
+
+        const totalRichness     = tolData.sensitive + tolData.tolerant;
+        const prevTotal         = prevTolData.sensitive + prevTolData.tolerant;
+        const migratoryPct      = (tolData.migratory / (tolData.resident + tolData.migratory)) * 100;
+        const histAvgMigratory  = prevTolData.migratory;
+
+        // High-ALAN sites (>35 nW) with decent richness — ecological trap candidates
+        const highLightHighRich = SITE_BASE.filter(s => s.lightVal > 35 && s.base > 0.45);
+        // Sites with high ALAN AND low richness — buffer deficit candidates
+        const bufferDeficit     = SITE_BASE.filter(s => s.lightVal > 35 && s.base < 0.45);
+        // KBA sites with rising light (light > 35)
+        const kbasUnderPressure = KBA_DATA.filter(k => k.light > 35);
+        // Low-light, high-richness, non-protected sites (Urban Refuge candidates)
+        const urbanRefuge       = SITE_BASE.filter(s => s.lightVal < 20 && s.base > 0.75);
+        // Year-over-year richness collapse check
+        const yoyDropPct        = prevTotal > 0 ? ((totalRichness - prevTotal) / prevTotal) * 100 : 0;
+        const historicalAvgRich = HIST_DATA.reduce((s, d) => s + d.richness, 0) / HIST_DATA.length;
+        const richnessBelowAvg  = histEntry ? histEntry.richness < historicalAvgRich * 0.85 : false;
+
+        // ── Thresholds ───────────────────────────────────────────────────────
+        const MIGRATION_MONTHS  = [8, 9, 10, 1, 2, 3]; // Sep–Nov, Feb–Apr (0-indexed)
+        const ALAN_HIGH         = 40;  // nW/cm²/sr
+        const ALAN_MODERATE     = 30;
+        const COLLAPSE_THRESHOLD = -15; // % year-over-year drop
+
+        // ── Rule definitions ─────────────────────────────────────────────────
+        interface Rec {
+          id: string;
+          severity: "critical" | "warning" | "info";
+          icon: string;
+          title: string;
+          body: string;
+        }
+
+        const recs: Rec[] = [];
+
+        // RULE 1 — Migration Season Alert
+        if (MIGRATION_MONTHS.includes(currentMonth) && tolData.migratory > histAvgMigratory) {
+          const monthName = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][currentMonth];
+          recs.push({
+            id: "migration-alert",
+            severity: "critical",
+            icon: "🦅",
+            title: "Migration Alert — Peak Season Active",
+            body: `The system has detected that ${monthName} falls within a peak migratory window and that ${selectedYear} migratory richness (${tolData.migratory.toLocaleString()} species) is above the ${Math.round(histAvgMigratory).toLocaleString()} historical average. Artificial light at night is a known disruptor of migratory navigation and can trigger ecological traps. Action: LGUs should implement temporary dimming of non-essential architectural and billboard lighting from 11:00 PM to 5:00 AM to reduce collision risks during this active transit period.`,
+          });
+        }
+
+        // RULE 2 — Sudden Collapse / Critical Decline
+        if (yoyDropPct <= COLLAPSE_THRESHOLD || richnessBelowAvg) {
+          recs.push({
+            id: "collapse-alert",
+            severity: "critical",
+            icon: "📉",
+            title: "Critical Decline Detected",
+            body: `The model has detected a ${Math.abs(yoyDropPct).toFixed(1)}% year-over-year drop in total species richness for ${selectedYear}${richnessBelowAvg ? ", and observed richness is more than 15% below the 2014–2024 historical average" : ""}. Action: Urgent field inspection is recommended. Investigate the area for recent high-intensity light installations (e.g., new sports complexes or streetlights) or concurrent habitat clearing that may have pushed the local carrying capacity past its ecological tipping point.`,
+          });
+        }
+
+        // RULE 3 — Ecological Trap
+        if (highLightHighRich.length > 0) {
+          const names = highLightHighRich.map(s => s.site).slice(0, 3).join(", ");
+          recs.push({
+            id: "ecological-trap",
+            severity: "warning",
+            icon: "⚠️",
+            title: "Ecological Trap Warning",
+            body: `${highLightHighRich.length} site(s) — including ${names} — show high nighttime radiance (>${ALAN_HIGH - 5} nW/cm²/sr) yet maintain above-average species richness. This pattern indicates light-sensitive species may be aggregating in illuminated areas despite poor habitat quality — a hallmark of an ecological trap. Action: Mandate installation of physical light shields directing light strictly downward, and transition bulbs to warm-white (≤ 3000K) LEDs to break the attraction response before population-level effects emerge.`,
+          });
+        }
+
+        // RULE 4 — Vegetation Buffer Deficit
+        if (bufferDeficit.length > 0) {
+          const worstSite = bufferDeficit.sort((a, b) => b.lightVal - a.lightVal)[0];
+          recs.push({
+            id: "buffer-deficit",
+            severity: "warning",
+            icon: "🌿",
+            title: "Vegetation Buffer Deficit",
+            body: `${bufferDeficit.length} high-ALAN site(s) are simultaneously recording low species richness — with "${worstSite.site}" recording the highest radiance at ${worstSite.lightVal} nW/cm²/sr and a richness index of only ${(worstSite.base * 100).toFixed(0)}%. Without adequate vegetation, birds have no refuge from ambient glare. Action: Prioritize these grid cells for immediate urban greening. Planting dense, multi-tiered native trees will create 'dark shadow' corridors and physical barriers that shield resting avian communities from streetlight glare.`,
+          });
+        }
+
+        // RULE 5 — KBAs Under Light Pressure
+        if (kbasUnderPressure.length > 0) {
+          const names = kbasUnderPressure.map(k => `${k.name} (${k.light} nW, Grade ${k.grade})`).join("; ");
+          recs.push({
+            id: "kba-pressure",
+            severity: "warning",
+            icon: "🏞️",
+            title: "Protected Areas Under ALAN Pressure",
+            body: `${kbasUnderPressure.length} Key Biodiversity Area(s) are recording nighttime radiance above the 35 nW/cm²/sr critical threshold: ${names}. These sites collectively host ${kbasUnderPressure.reduce((s, k) => s + k.species, 0)} species, of which an average ${Math.round(kbasUnderPressure.reduce((s, k) => s + k.sensitivePct, 0) / kbasUnderPressure.length)}% are light-sensitive. Action: Establish 500 m low-light buffer zones and enforce no-build setbacks around KBA boundaries to prevent further radiance intrusion.`,
+          });
+        }
+
+        // RULE 6 — Urban Refuge (unprotected high-richness, low-light sites)
+        if (urbanRefuge.length > 0) {
+          const names = urbanRefuge.map(s => s.site).join(", ");
+          recs.push({
+            id: "urban-refuge",
+            severity: "info",
+            icon: "🌟",
+            title: "Unprotected Urban Refuge Identified",
+            body: `${urbanRefuge.length} observation site(s) — ${names} — maintain high species richness indices (≥ 0.75) with low nighttime radiance (< 20 nW/cm²/sr) but currently lack formal environmental protection status. These represent naturally dark, biodiversity-rich urban refugia that are at risk from commercial encroachment. Action: Share these coordinates with city planners to advocate for formal classification as protected urban green spaces before development pressure eliminates their ecological value.`,
+          });
+        }
+
+        // RULE 7 — Migratory share declining
+        if (migratoryPct < 40 && selectedYear > 2014) {
+          recs.push({
+            id: "migratory-decline",
+            severity: "info",
+            icon: "✈️",
+            title: "Migratory Species Share Declining",
+            body: `In ${selectedYear}, migratory species represent ${migratoryPct.toFixed(1)}% of total richness — below the 40% benchmark associated with healthy stopover habitat in NCR. Reduced migratory representation typically precedes broader resident diversity loss. Action: Prioritise dark-sky corridors along known flyways, especially around Manila Bay and Laguna de Bay shorelines, ahead of the next migration window (September–November and February–April).`,
+          });
+        }
+
+        // ── Severity styles ───────────────────────────────────────────────────
+        const severityStyle = (s: Rec["severity"]) => {
+          if (s === "critical") return {
+            card:  lm ? "bg-red-50 border-red-200"     : "bg-red-900/10 border-red-700/30",
+            title: lm ? "text-red-800"                 : "text-red-300",
+            body:  lm ? "text-red-700"                 : "text-red-400/80",
+            badge: lm ? "bg-red-100 text-red-700 border border-red-300" : "bg-red-500/20 text-red-400 border border-red-500/30",
+            label: "Critical",
+          };
+          if (s === "warning") return {
+            card:  lm ? "bg-amber-50 border-amber-200" : "bg-amber-900/10 border-amber-700/30",
+            title: lm ? "text-amber-800"               : "text-amber-300",
+            body:  lm ? "text-amber-700"               : "text-amber-400/80",
+            badge: lm ? "bg-amber-100 text-amber-700 border border-amber-300" : "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+            label: "Warning",
+          };
+          return {
+            card:  lm ? "bg-blue-50 border-blue-200"   : "bg-blue-900/10 border-blue-700/30",
+            title: lm ? "text-blue-800"                : "text-blue-300",
+            body:  lm ? "text-blue-700"                : "text-blue-400/80",
+            badge: lm ? "bg-blue-100 text-blue-700 border border-blue-300" : "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+            label: "Info",
+          };
+        };
+
+        return (
+          <div className={panel}>
+            {/* Header */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-1 h-6 rounded-full ${lm ? "bg-blue-500" : "bg-blue-400"}`} />
+                <span className={`text-sm ${headTxt}`} style={{ fontWeight: 700 }}>System Recommendations</span>
+                <span className={lm
+                  ? "inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200"
+                  : "inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                }>
+                  Rule-Based Engine · {recs.length} alert{recs.length !== 1 ? "s" : ""} triggered
+                </span>
+              </div>
+              <div className={`flex items-center gap-1.5 text-xs ${subTxt}`}>
+                <span>Evaluating year:</span>
+                <span className={`font-bold ${headTxt}`}>{selectedYear}</span>
+              </div>
+            </div>
+
+            {recs.length === 0 ? (
+              <div className={`rounded-xl border p-6 text-center ${lm ? "bg-green-50 border-green-200" : "bg-green-900/10 border-green-700/30"}`}>
+                <p className="text-2xl mb-2">✅</p>
+                <p className={`text-sm font-bold ${lm ? "text-green-700" : "text-green-400"}`}>No alerts triggered for {selectedYear}</p>
+                <p className={`text-xs mt-1 ${subTxt}`}>All monitored conditions are within acceptable thresholds. Continue routine observation schedules.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {recs.map(rec => {
+                  const s = severityStyle(rec.severity);
+                  return (
+                    <div key={rec.id} className={`rounded-xl border p-4 ${s.card}`}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl shrink-0">{rec.icon}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <p className={`text-sm font-bold ${s.title}`}>{rec.title}</p>
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${s.badge}`}>{s.label}</span>
+                          </div>
+                          <p className={`text-xs leading-relaxed ${s.body}`}>{rec.body}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
     </div>
   );
