@@ -587,9 +587,9 @@ export function Analytics() {
   const [bauRunning,    setBauRunning]    = useState(false);
   const [mitRunning,    setMitRunning]    = useState(false);
 
-  // Track all city+month combos that have had BAU run, with their prediction results
-  // Key: "cityId:month", value: { result, runCount }
-  const [bauHistory, setBauHistory] = useState<Map<string, { result: PredictionResult; runCount: number }>>(new Map());
+  // Track the latest BAU result per city. Key: cityId, value: { result, month }.
+  // A city gets colored once BAU is run for it; re-running (any month) overwrites.
+  const [cityPredMap, setCityPredMap] = useState<Map<string, { result: PredictionResult; month: number }>>(new Map());
 
   const mitInputs = {
     alan:   Math.max(0, historicalCovariates.alan + alanDelta),
@@ -612,14 +612,8 @@ export function Analytics() {
       });
       setBauPrediction(result);
       setBauRunning(false);
-      // Track this city+month run in history
-      const key = `${predCityId}:${month}`;
-      setBauHistory(prev => {
-        const next = new Map(prev);
-        const existing = next.get(key);
-        next.set(key, { result, runCount: (existing?.runCount ?? 0) + 1 });
-        return next;
-      });
+      // Store latest prediction result + month for this city (overwrites any previous)
+      setCityPredMap(prev => new Map(prev).set(predCityId, { result, month }));
     }, 700);
   }
 
@@ -658,23 +652,11 @@ export function Analytics() {
     return m;
   }, [tolerance, migration, month, selectedYear]);
 
-  // ── Map fill logic: color persists after BAU unless run 2+ times on same city+month ──
+  // ── Map fill: gray until BAU run for that city; color persists and updates on re-run ──
   function getCityFill(city: CityInfo): string {
-    const key = `${city.id}:${month}`;
-    const histEntry = bauHistory.get(key);
-
-    if (!histEntry) {
-      // Never run for this city+month: gray
-      return city.id === predCityId ? "#9ca3af" : "#6b7280";
-    }
-
-    if (histEntry.runCount >= 2) {
-      // Run twice or more for same city+month: revert to gray
-      return city.id === predCityId ? "#9ca3af" : "#6b7280";
-    }
-
-    // Run exactly once: show richness color
-    return richnessColor(histEntry.result.total);
+    const entry = cityPredMap.get(city.id);
+    if (!entry) return "#6b7280"; // never predicted → gray
+    return richnessColor(entry.result.total);
   }
 
   return (
@@ -781,32 +763,20 @@ export function Analytics() {
           <button className="w-7 h-7 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700"><Minus size={13} /></button>
         </div>
 
-        {/* Legend */}
+        {/* Legend — static, always visible */}
         <div className="absolute bottom-8 left-3 bg-white/92 border border-gray-300 rounded-lg p-3 shadow-lg backdrop-blur-sm">
-          {bauPrediction ? (
-            <>
-              <p className="text-gray-800 mb-2" style={{ fontWeight: 700, fontSize: "12px" }}>Predicted Richness</p>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-gray-500" style={{ fontSize: "10px" }}>Low</span>
-                <div className="h-3 rounded" style={{ width: "100px", background: "linear-gradient(to right,#1a1e78,#1565c0,#42a5f5,#fff176,#f9a825)" }} />
-                <span className="text-gray-500" style={{ fontSize: "10px" }}>High</span>
-              </div>
-              <div className="flex justify-between w-28">
-                {["0","12","25","37","50"].map(v => (
-                  <span key={v} className="text-gray-500" style={{ fontSize: "9px" }}>{v}</span>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-gray-800 mb-2" style={{ fontWeight: 700, fontSize: "12px" }}>Map Status</p>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-3 h-3 rounded-sm shrink-0 bg-gray-500" />
-                <span className="text-gray-600" style={{ fontSize: "11px" }}>No prediction yet</span>
-              </div>
-              <p className="text-gray-500" style={{ fontSize: "9px" }}>Run BAU to colorize map</p>
-            </>
-          )}
+          <p className="text-gray-800 mb-2" style={{ fontWeight: 700, fontSize: "12px" }}>Predicted Richness</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-gray-500" style={{ fontSize: "10px" }}>Low</span>
+            <div className="h-3 rounded" style={{ width: "100px", background: "linear-gradient(to right,#1a1e78,#1565c0,#42a5f5,#fff176,#f9a825)" }} />
+            <span className="text-gray-500" style={{ fontSize: "10px" }}>High</span>
+          </div>
+          <div className="flex justify-between w-28">
+            {["0","12","25","37","50"].map(v => (
+              <span key={v} className="text-gray-500" style={{ fontSize: "9px" }}>{v}</span>
+            ))}
+          </div>
+          <p className="text-gray-400 mt-1.5" style={{ fontSize: "9px" }}>Gray = no prediction yet</p>
         </div>
 
         <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 ${tooltipBg} rounded-full px-4 py-1.5 text-xs ${lightMode ? 'text-gray-700' : 'text-gray-200'} backdrop-blur-sm pointer-events-none whitespace-nowrap`}>
@@ -1323,15 +1293,14 @@ export function Analytics() {
       {hoveredCity && (() => {
         const city = CITIES.find(c => c.id === hoveredCity);
         if (!city) return null;
-        const isPredCity = city.id === predCityId;
-        const pred = isPredCity && bauPrediction ? bauPrediction : null;
+        const predEntry = cityPredMap.get(city.id);
 
         return (
           <div className="fixed pointer-events-none z-50 rounded-lg shadow-xl overflow-hidden"
             style={{
               left: Math.min(mousePos.x + 14, window.innerWidth - 230),
               top:  Math.max(mousePos.y - 90, 8),
-              minWidth: "180px",
+              minWidth: "210px",
               background: lightMode ? "#ffffff" : "#0d1117",
               border: lightMode ? "1px solid #d1d5db" : "1px solid #2a3550",
             }}
@@ -1346,20 +1315,20 @@ export function Analytics() {
               </div>
             </div>
 
-            {/* Body — only show if prediction exists for this city */}
-            {pred && (
+            {/* Body — show prediction breakdown if this city has ever been predicted */}
+            {predEntry ? (
               <div className="px-3 py-2.5 border-t"
                 style={{ borderColor: lightMode ? "#e5e7eb" : "#1e2535" }}>
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-xs ${textSecondary}`}>Total Predicted</span>
-                    <span className="text-purple-400 text-sm" style={{ fontWeight: 800 }}>{pred.total} spp.</span>
+                    <span className="text-purple-400 text-sm" style={{ fontWeight: 800 }}>{predEntry.result.total} spp.</span>
                   </div>
                   {[
-                    { label: "Light Sensitive", val: pred.lightSensitive, color: "#f87171" },
-                    { label: "Light Tolerant",  val: pred.lightTolerant,  color: "#60a5fa" },
-                    { label: "Resident",         val: pred.resident,       color: "#34d399" },
-                    { label: "Migratory",        val: pred.migratory,      color: "#fbbf24" },
+                    { label: "Light Sensitive", val: predEntry.result.lightSensitive, color: "#f87171" },
+                    { label: "Light Tolerant",  val: predEntry.result.lightTolerant,  color: "#60a5fa" },
+                    { label: "Resident",        val: predEntry.result.resident,       color: "#34d399" },
+                    { label: "Migratory",       val: predEntry.result.migratory,      color: "#fbbf24" },
                   ].map((row, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -1369,12 +1338,13 @@ export function Analytics() {
                       <span className="text-xs" style={{ fontWeight: 700, color: row.color }}>{row.val}</span>
                     </div>
                   ))}
-                  <p className={`text-xs mt-1 ${textSecondary} italic`}>
-                    {MONTHS[month]} · {city.dominantLandCover}
+                  <p className={`text-xs mt-1.5 pt-1.5 border-t ${textSecondary} italic`}
+                    style={{ borderColor: lightMode ? "#e5e7eb" : "#1e2535" }}>
+                    {MONTHS[predEntry.month]} · {city.dominantLandCover}
                   </p>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         );
       })()}
