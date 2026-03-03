@@ -504,7 +504,6 @@ export function Analytics() {
   const { lightMode } = useOutletContext<{ lightMode: boolean }>();
 
   const pageBg       = lightMode ? "bg-white text-gray-900" : "bg-[#0d1117] text-white";
-  const navBg        = lightMode ? "bg-white border-gray-200" : "bg-[#0d1117] border-[#1e2535]";
   const gridBg       = lightMode ? "bg-gray-50" : "bg-[#0d1117]";
   const inputBg      = lightMode ? "bg-white border border-gray-300 text-gray-900" : "bg-[#161b22] border border-[#2a2f42] text-gray-200";
   const tooltipBg    = lightMode ? "bg-gray-100/80 border-gray-300" : "bg-[#111]/80 border-[#333]";
@@ -661,18 +660,6 @@ export function Analytics() {
 
   return (
     <div className={`flex flex-col min-h-full ${pageBg}`}>
-
-      {/* ── Sticky top nav ─────────────────────────────────────────────────── */}
-      <nav className={`sticky top-0 z-20 flex h-11 items-center justify-between px-4 ${navBg} border-b shrink-0`}>
-        <div className="flex items-center gap-2">
-          <span className={`${textSecondary} text-xs font-semibold`}>Prediction Mode</span>
-          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${lightMode ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-300"}`}>
-            <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-            Species Richness
-          </span>
-        </div>
-        <span className={`text-xs ${textSecondary} italic`}>Select a city below → Run BAU Prediction to update map</span>
-      </nav>
 
       {/* ── Map ──────────────────────────────────────────────────────────────── */}
       <div
